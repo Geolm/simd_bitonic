@@ -44,9 +44,48 @@ void sort_16_floats(float* array);
 
 #include <arm_neon.h>
 
+#define ALIGN_STRUCT(x) __attribute__((aligned(x)))
+
+static inline float32x4_t vblendq_f32(float32x4_t _a, float32x4_t _b, const char imm8)
+{
+    const uint32_t ALIGN_STRUCT(16) data[4] = 
+    {
+        ((imm8) & (1 << 0)) ? UINT32_MAX : 0,
+        ((imm8) & (1 << 1)) ? UINT32_MAX : 0,
+        ((imm8) & (1 << 2)) ? UINT32_MAX : 0,
+        ((imm8) & (1 << 3)) ? UINT32_MAX : 0
+    };
+
+    uint32x4_t mask = vld1q_u32(data);
+    return vbslq_f32(mask, _b, _a);
+}
+
+static inline float32x4_t sort_4_floats(float32x4_t input)
+{
+    {
+        float32x4_t perm_neigh = vrev64q_f32(input);
+        float32x4_t perm_neigh_min = vminq_f32(input, perm_neigh);
+        float32x4_t perm_neigh_max = vmaxq_f32(input, perm_neigh);
+        input = vblendq_f32(perm_neigh_min, perm_neigh_max, 0xA);
+    }
+    {
+        float32x4_t perm_neigh = __builtin_shufflevector(input, input, 3, 2, 1, 0);
+        float32x4_t perm_neigh_min = vminq_f32(input, perm_neigh);
+        float32x4_t perm_neigh_max = vmaxq_f32(input, perm_neigh);
+        input = vblendq_f32(perm_neigh_min, perm_neigh_max, 0xC);
+    }
+    {
+        float32x4_t perm_neigh = vrev64q_f32(input);
+        float32x4_t perm_neigh_min = vminq_f32(input, perm_neigh);
+        float32x4_t perm_neigh_max = vmaxq_f32(input, perm_neigh);
+        input = vblendq_f32(perm_neigh_min, perm_neigh_max, 0xA);
+    }
+    return input;
+}
+
 void sort_16_floats(float* array)
 {
-    
+
 }
 
 #else
