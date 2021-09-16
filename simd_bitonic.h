@@ -83,9 +83,53 @@ static inline float32x4_t sort_4_floats(float32x4_t input)
     return input;
 }
 
+static inline void sort_8_floats(float32x4_t *a, float32x4_t *b)
+{
+    *a = sort_4_floats(*a);
+    *b = sort_4_floats(*b);
+    
+    {
+        float32x4_t perm_neigh = __builtin_shufflevector(*b, *b, 3, 2, 1, 0);
+        float32x4_t perm_neigh_min = vminq_f32(*a, perm_neigh);
+        float32x4_t perm_neigh_max = vmaxq_f32(*a, perm_neigh);
+        *a = perm_neigh_min;
+        *b = perm_neigh_max;
+    }
+    {
+        float32x4_t perm_neigh = __builtin_shufflevector(*a, *a, 2, 3, 0, 1);
+        float32x4_t perm_neigh_min = vminq_f32(*a, perm_neigh);
+        float32x4_t perm_neigh_max = vmaxq_f32(*a, perm_neigh);
+        *a = vblendq_f32(perm_neigh_min, perm_neigh_max, 0xC);
+    }
+    {
+        float32x4_t perm_neigh = vrev64q_f32(*a);
+        float32x4_t perm_neigh_min = vminq_f32(*a, perm_neigh);
+        float32x4_t perm_neigh_max = vmaxq_f32(*a, perm_neigh);
+        *a = vblendq_f32(perm_neigh_min, perm_neigh_max, 0xA);
+    }
+    {
+        float32x4_t perm_neigh = __builtin_shufflevector(*b, *b, 2, 3, 0, 1);
+        float32x4_t perm_neigh_min = vminq_f32(*b, perm_neigh);
+        float32x4_t perm_neigh_max = vmaxq_f32(*b, perm_neigh);
+        *b = vblendq_f32(perm_neigh_min, perm_neigh_max, 0xC);
+    }
+    {
+        float32x4_t perm_neigh = vrev64q_f32(*b);
+        float32x4_t perm_neigh_min = vminq_f32(*b, perm_neigh);
+        float32x4_t perm_neigh_max = vmaxq_f32(*b, perm_neigh);
+        *b = vblendq_f32(perm_neigh_min, perm_neigh_max, 0xA);
+    }
+}
+
 void sort_16_floats(float* array)
 {
-
+    float32x4_t a = vld1q_f32(array);
+    float32x4_t b = vld1q_f32(array+4);
+    float32x4_t c = vld1q_f32(array+8);
+    float32x4_t d = vld1q_f32(array+12);
+    
+    sort_8_floats(&a, &b);
+    sort_8_floats(&c, &d);
 }
 
 #else
