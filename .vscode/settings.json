@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "__tuple": "c",
+        "array": "c",
+        "float.h": "c"
+    }
+}
