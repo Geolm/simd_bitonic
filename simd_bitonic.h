@@ -182,6 +182,7 @@ void simd_sort_16f(float* array)
 #include <immintrin.h>
 #include <stdint.h>
 
+//----------------------------------------------------------------------------------------------------------------------
 static inline __m256 _mm256_swap(__m256 input)
 {
     __m128 lo = _mm256_extractf128_ps(input, 0);
@@ -189,6 +190,7 @@ static inline __m256 _mm256_swap(__m256 input)
     return _mm256_setr_m128(hi, lo);
 }
 
+//----------------------------------------------------------------------------------------------------------------------
 static inline __m256 simd_sort_8f(__m256 input)
 {
     {
@@ -228,10 +230,10 @@ static inline __m256 simd_sort_8f(__m256 input)
         __m256 perm_neigh_max = _mm256_max_ps(input, perm_neigh);
         input = _mm256_blend_ps(perm_neigh_min, perm_neigh_max, 0xAA);
     }
-    
     return input;
 }
 
+//----------------------------------------------------------------------------------------------------------------------
 static inline __m256 simd_aftermerge_8f(__m256 a)
 {
     {
@@ -256,27 +258,64 @@ static inline __m256 simd_aftermerge_8f(__m256 a)
     return a;
 }
 
+//----------------------------------------------------------------------------------------------------------------------
+static inline void simd_permute_minmax_16f(__m256* a, __m256* b)
+{
+    __m256 swap = _mm256_swap(*b);
+    __m256 perm_neigh = _mm256_permute_ps(swap, _MM_SHUFFLE(0, 1, 2, 3));
+    __m256 perm_neigh_min = _mm256_min_ps(*a, perm_neigh);
+    __m256 perm_neigh_max = _mm256_max_ps(*a, perm_neigh);
+    *a = perm_neigh_min;
+    *b = perm_neigh_max;
+}
+
+//----------------------------------------------------------------------------------------------------------------------
 static inline void simd_sort_16f(__m256* a, __m256* b)
 {
     *a = simd_sort_8f(*a);
     *b = simd_sort_8f(*b);
-
-    {
-        __m256 swap = _mm256_swap(*b);
-        __m256 perm_neigh = _mm256_permute_ps(swap, _MM_SHUFFLE(0, 1, 2, 3));
-        __m256 perm_neigh_min = _mm256_min_ps(*a, perm_neigh);
-        __m256 perm_neigh_max = _mm256_max_ps(*a, perm_neigh);
-        *a = perm_neigh_min;
-        *b = perm_neigh_max;
-    }
-
+    simd_permute_minmax_16f(a, b);
     *a = simd_aftermerge_8f(*a);
     *b = simd_aftermerge_8f(*b);
 }
 
-// positive infinity
-#define FLOAT_PINF (0x7F800000) 
+//----------------------------------------------------------------------------------------------------------------------
+static inline void simd_minmax_16f(__m256* a, __m256* b)
+{
+    __m256 a_copy = *a;
+    *a = _mm256_min_ps(*b, a_copy);
+    *b = _mm256_max_ps(*b, a_copy);
+}
 
+//----------------------------------------------------------------------------------------------------------------------
+static inline void simd_sort_24f(__m256* a, __m256* b, __m256* c)
+{
+    simd_sort_16f(a, b);
+    *c = simd_sort_8f(*c);
+    simd_permute_minmax_16f(b, c);
+    simd_minmax_16f(a, b);
+    *a = simd_aftermerge_8f(*a);
+    *b = simd_aftermerge_8f(*b);
+    *c = simd_aftermerge_8f(*c);
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+static inline void simd_sort_32f(__m256* a, __m256* b, __m256* c, __m256* d)
+{
+    simd_sort_16f(a, b);
+    simd_sort_16f(c, d);
+    simd_permute_minmax_16f(a, d);
+    simd_permute_minmax_16f(b, c);
+    simd_minmax_16f(a, b);
+    simd_minmax_16f(c, d);
+    *a = simd_aftermerge_8f(*a);
+    *b = simd_aftermerge_8f(*b);
+    *c = simd_aftermerge_8f(*c);
+    *d = simd_aftermerge_8f(*d);
+}
+
+
+//----------------------------------------------------------------------------------------------------------------------
 static inline __m256i loadstore_mask(int element_count)
 {
     return _mm256_set_epi32(0, 
@@ -289,6 +328,10 @@ static inline __m256i loadstore_mask(int element_count)
                             (element_count>0) ? 0xffffffff : 0);
 }
 
+// positive infinity float hexadecimal value
+#define FLOAT_PINF (0x7F800000) 
+
+//----------------------------------------------------------------------------------------------------------------------
 static inline __m256 _mm256_load_partial(const float* array, int element_count)
 {
     assert(element_count<9 && element_count>0);
@@ -298,20 +341,21 @@ static inline __m256 _mm256_load_partial(const float* array, int element_count)
     }
     else
     {
-        __m256 inf_mask = _mm256_set_epi32(FLOAT_PINF, 
+        __m256 inf_mask = _mm256_cvtepi32_ps(_mm256_set_epi32(FLOAT_PINF, 
                                            (element_count>6) ? 0 : FLOAT_PINF,
                                            (element_count>5) ? 0 : FLOAT_PINF,
                                            (element_count>4) ? 0 : FLOAT_PINF,
                                            (element_count>3) ? 0 : FLOAT_PINF,
                                            (element_count>2) ? 0 : FLOAT_PINF,
                                            (element_count>1) ? 0 : FLOAT_PINF,
-                                           (element_count>0) ? 0 : FLOAT_PINF);
+                                           (element_count>0) ? 0 : FLOAT_PINF));
         
         __m256 a = _mm256_maskload_ps(array, loadstore_mask(element_count));
         return _mm256_or_ps(a, inf_mask);
     }
 }
 
+//----------------------------------------------------------------------------------------------------------------------
 static inline void _mm256_store_partial(float* array, __m256 a, int element_count)
 {
     assert(element_count<9 && element_count>0);
@@ -325,6 +369,7 @@ static inline void _mm256_store_partial(float* array, __m256 a, int element_coun
     }
 }
 
+//----------------------------------------------------------------------------------------------------------------------
 int simd_sort_float(float* array, int element_count)
 {
     const intptr_t address = (intptr_t) array;
@@ -344,12 +389,39 @@ int simd_sort_float(float* array, int element_count)
     if (element_count < 16)
     {
         __m256 a = _mm256_load_ps(array);
-        __m256 b = _mm256_load_partial(array + 8, last_vec_size);
+        __m256 b = _mm256_load_partial(array+8, last_vec_size);
         simd_sort_16f(&a, &b);
         _mm256_store_ps(array, a);
         _mm256_store_partial(array+8, b, last_vec_size);
         return SIMD_SORT_OK;
     }
+    
+    if (element_count < 24)
+    {
+        __m256 a = _mm256_load_ps(array);
+        __m256 b = _mm256_load_ps(array+8);
+        __m256 c = _mm256_load_partial(array+16, last_vec_size);
+        simd_sort_24f(&a, &b, &c);
+        _mm256_store_ps(array, a);
+        _mm256_store_ps(array+8, b);
+        _mm256_store_partial(array+16, c, last_vec_size);
+        return SIMD_SORT_OK;
+
+    }
+
+    if (element_count < 32)
+    {
+        __m256 a = _mm256_load_ps(array);
+        __m256 b = _mm256_load_ps(array+8);
+        __m256 c = _mm256_load_ps(array+16);
+        __m256 d = _mm256_load_partial(array+24, last_vec_size);
+        simd_sort_32f(&a, &b, &c, &d);
+        _mm256_store_ps(array, a);
+        _mm256_store_ps(array+8, b);
+        _mm256_store_ps(array+16, c);
+        _mm256_store_partial(array+24, d, last_vec_size);
+    }
+        
     return SIMD_SORT_TOOMANYELEMENTS;
 }
 
