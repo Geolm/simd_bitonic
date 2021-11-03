@@ -11,9 +11,11 @@ AVX (x64) and NEON (arm) implementation using intrinsics.
 ## Mac mini 2018, i7, AVX
 10,000,000 times sorting an array of 32 float values
 
-std::vector sort, duration : 4.230545 seconds, result : 299736.843750
+std::vector sort, duration : 4.149731 seconds, result : 299736.843750
 
-simd_bitonic sort, duration : 0.668612 seconds, result : 299736.843750
+simd_bitonic sort, duration : 0.670323 seconds, result : 299736.843750
+
+**6.1390647** times faster than stl
 
 
 
