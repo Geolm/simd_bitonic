@@ -25,9 +25,10 @@ DOCUMENTATION
 extern "C" {
 #endif
 
-#define SIMD_SORT_OK (1)
-#define SIMD_SORT_NOTALIGNED (2)
-#define SIMD_SORT_TOOMANYELEMENTS (3)
+#define SIMD_SORT_OK                (1)
+#define SIMD_SORT_NOTALIGNED        (2)
+#define SIMD_SORT_TOOMANYELEMENTS   (3)
+#define SIMD_SORT_NOTHINGTOSORT     (4)
 
 // returns SIMD_SORT_OK if suceeded otherwise another error code
 int simd_sort_float(float* array, int element_count);
@@ -372,8 +373,10 @@ static inline void _mm256_store_partial(float* array, __m256 a, int element_coun
 //----------------------------------------------------------------------------------------------------------------------
 int simd_sort_float(float* array, int element_count)
 {
-    const intptr_t address = (intptr_t) array;
+    if (!element_count)
+        return SIMD_SORT_NOTHINGTOSORT;
 
+    const intptr_t address = (intptr_t) array;
     if (address%32 != 0)
         return SIMD_SORT_NOTALIGNED;
 
@@ -421,7 +424,7 @@ int simd_sort_float(float* array, int element_count)
         _mm256_store_partial(array+24, d, last_vec_size);
         return SIMD_SORT_OK;
     }
-    
+
     return SIMD_SORT_TOOMANYELEMENTS;
 }
 
