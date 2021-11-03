@@ -406,7 +406,6 @@ int simd_sort_float(float* array, int element_count)
         _mm256_store_ps(array+8, b);
         _mm256_store_partial(array+16, c, last_vec_size);
         return SIMD_SORT_OK;
-
     }
 
     if (element_count <= 32)
@@ -420,8 +419,9 @@ int simd_sort_float(float* array, int element_count)
         _mm256_store_ps(array+8, b);
         _mm256_store_ps(array+16, c);
         _mm256_store_partial(array+24, d, last_vec_size);
+        return SIMD_SORT_OK;
     }
-        
+    
     return SIMD_SORT_TOOMANYELEMENTS;
 }
 
