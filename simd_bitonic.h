@@ -378,7 +378,7 @@ int simd_sort_float(float* array, int element_count)
         return SIMD_SORT_NOTALIGNED;
 
     const int last_vec_size = (element_count%8) == 0 ? 8 : (element_count%8);
-    if (element_count<8)
+    if (element_count <= 8)
     {
         __m256 a = _mm256_load_partial(array, last_vec_size);
         a = simd_sort_8f(a);
@@ -386,7 +386,7 @@ int simd_sort_float(float* array, int element_count)
         return SIMD_SORT_OK;
     }
 
-    if (element_count < 16)
+    if (element_count <= 16)
     {
         __m256 a = _mm256_load_ps(array);
         __m256 b = _mm256_load_partial(array+8, last_vec_size);
@@ -396,7 +396,7 @@ int simd_sort_float(float* array, int element_count)
         return SIMD_SORT_OK;
     }
     
-    if (element_count < 24)
+    if (element_count <= 24)
     {
         __m256 a = _mm256_load_ps(array);
         __m256 b = _mm256_load_ps(array+8);
@@ -409,7 +409,7 @@ int simd_sort_float(float* array, int element_count)
 
     }
 
-    if (element_count < 32)
+    if (element_count <= 32)
     {
         __m256 a = _mm256_load_ps(array);
         __m256 b = _mm256_load_ps(array+8);
