@@ -6,10 +6,23 @@ Loosely based on "Fast Sorting Algorithms using AVX-512 on Intel Knights Landing
 
 AVX (x64) and NEON (arm) implementation using intrinsics.
 
+# Results
+
+## Mac mini 2018, i7, AVX
+10,000,000 times sorting an array of 32 float values
+
+std::vector sort, duration : 4.230545 seconds, result : 299736.843750
+
+simd_bitonic sort, duration : 0.668612 seconds, result : 299736.843750
+
+
+
+
 # Faster than std::sort()
 
 * Running bitonic sort in parallel thanks to SIMD wide register (4 floats NEON / 8 floats AVX)
 * Less access to memory as most of the work is done inside SIMD registers
+
 
 
 # Drawbacks
