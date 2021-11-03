@@ -26,7 +26,7 @@ simd_bitonic sort, duration : 0.668612 seconds, result : 299736.843750
 
 
 # Drawbacks
-* Only for small arrays, current size <= 32 floats
+* Only for small arrays, currently only size <= 32 floats are supported
 * Sort only floats, cannot sort a structure with a float in for example
 * Works only aligned (16 or 32 bytes depending on the platform) array 
 * No SSE or non-SIMD implementation. Bitonic sort is slower than std::sort if not done in parallel.
