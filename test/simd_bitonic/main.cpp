@@ -41,8 +41,8 @@ int main(int argc, const char * argv[])
     }
     
     uint64_t raw_delta_time = stm_since(current_time);
-    float duration = (float)stm_sec(raw_delta_time);
-    printf("std::vector sort, duration : %f seconds, result : %f\n", duration, result);
+    float stl_duration = (float)stm_sec(raw_delta_time);
+    printf("std::vector sort, duration : %f seconds, result : %f\n", stl_duration, result);
     
     
     current_time = stm_now();
@@ -60,8 +60,8 @@ int main(int argc, const char * argv[])
     }
     
     raw_delta_time = stm_since(current_time);
-    duration = (float)stm_sec(raw_delta_time);
-    printf("simd_bitonic sort, duration : %f seconds, result : %f\n", duration, result);
+    float bitonic_duration = (float)stm_sec(raw_delta_time);
+    printf("simd_bitonic sort, duration : %f seconds, result : %f, %f times faster than stl\n", bitonic_duration, result, stl_duration/bitonic_duration);
     
     return 0;
 }
