@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		FBC97B1826EFF1C600D31F19 /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = FBC97B1726EFF1C600D31F19 /* main.c */; };
+		FB09FFC6273324D0004D1B2A /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = FB09FFC5273324D0004D1B2A /* main.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -23,8 +23,10 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		FB09FFC4273324D0004D1B2A /* sokol_time.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = sokol_time.h; sourceTree = "<group>"; };
+		FB09FFC5273324D0004D1B2A /* main.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
+		FB09FFC827332577004D1B2A /* random.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = random.h; sourceTree = "<group>"; };
 		FBC97B1426EFF1C600D31F19 /* simd_bitonic */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = simd_bitonic; sourceTree = BUILT_PRODUCTS_DIR; };
-		FBC97B1726EFF1C600D31F19 /* main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = main.c; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -57,7 +59,9 @@
 		FBC97B1626EFF1C600D31F19 /* simd_bitonic */ = {
 			isa = PBXGroup;
 			children = (
-				FBC97B1726EFF1C600D31F19 /* main.c */,
+				FB09FFC827332577004D1B2A /* random.h */,
+				FB09FFC5273324D0004D1B2A /* main.cpp */,
+				FB09FFC4273324D0004D1B2A /* sokol_time.h */,
 			);
 			path = simd_bitonic;
 			sourceTree = "<group>";
@@ -118,7 +122,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				FBC97B1826EFF1C600D31F19 /* main.c in Sources */,
+				FB09FFC6273324D0004D1B2A /* main.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
