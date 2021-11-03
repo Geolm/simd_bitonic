@@ -232,6 +232,30 @@ static inline __m256 simd_sort_8f(__m256 input)
     return input;
 }
 
+static inline __m256 simd_aftermerge_8f(__m256 a)
+{
+    {
+        __m256 swap = _mm256_swap(a);
+        __m256 perm_neigh = _mm256_permute_ps(swap, _MM_SHUFFLE(3, 2, 1, 0));
+        __m256 perm_neigh_min = _mm256_min_ps(a, perm_neigh);
+        __m256 perm_neigh_max = _mm256_max_ps(a, perm_neigh);
+        a = _mm256_blend_ps(perm_neigh_min, perm_neigh_max, 0xF0);
+    }
+    {
+        __m256 perm_neigh = _mm256_permute_ps(a, _MM_SHUFFLE(1, 0, 3, 2));
+        __m256 perm_neigh_min = _mm256_min_ps(a, perm_neigh);
+        __m256 perm_neigh_max = _mm256_max_ps(a, perm_neigh);
+        a = _mm256_blend_ps(perm_neigh_min, perm_neigh_max, 0xCC);
+    }
+    {
+        __m256 perm_neigh = _mm256_permute_ps(a, _MM_SHUFFLE(2, 3, 0, 1));
+        __m256 perm_neigh_min = _mm256_min_ps(a, perm_neigh);
+        __m256 perm_neigh_max = _mm256_max_ps(a, perm_neigh);
+        a = _mm256_blend_ps(perm_neigh_min, perm_neigh_max, 0xAA);
+    }
+    return a;
+}
+
 static inline void simd_sort_16f(__m256* a, __m256* b)
 {
     *a = simd_sort_8f(*a);
@@ -245,47 +269,13 @@ static inline void simd_sort_16f(__m256* a, __m256* b)
         *a = perm_neigh_min;
         *b = perm_neigh_max;
     }
-    {
-        __m256 swap = _mm256_swap(*a);
-        __m256 perm_neigh = _mm256_permute_ps(swap, _MM_SHUFFLE(3, 2, 1, 0));
-        __m256 perm_neigh_min = _mm256_min_ps(*a, perm_neigh);
-        __m256 perm_neigh_max = _mm256_max_ps(*a, perm_neigh);
-        *a = _mm256_blend_ps(perm_neigh_min, perm_neigh_max, 0xF0);
-    }
-    {
-        __m256 perm_neigh = _mm256_permute_ps(*a, _MM_SHUFFLE(1, 0, 3, 2));
-        __m256 perm_neigh_min = _mm256_min_ps(*a, perm_neigh);
-        __m256 perm_neigh_max = _mm256_max_ps(*a, perm_neigh);
-        *a = _mm256_blend_ps(perm_neigh_min, perm_neigh_max, 0xCC);
-    }
-    {
-        __m256 perm_neigh = _mm256_permute_ps(*a, _MM_SHUFFLE(2, 3, 0, 1));
-        __m256 perm_neigh_min = _mm256_min_ps(*a, perm_neigh);
-        __m256 perm_neigh_max = _mm256_max_ps(*a, perm_neigh);
-        *a = _mm256_blend_ps(perm_neigh_min, perm_neigh_max, 0xAA);
-    }
-    {
-        __m256 swap = _mm256_swap(*b);
-        __m256 perm_neigh = _mm256_permute_ps(swap, _MM_SHUFFLE(3, 2, 1, 0));
-        __m256 perm_neigh_min = _mm256_min_ps(*b, perm_neigh);
-        __m256 perm_neigh_max = _mm256_max_ps(*b, perm_neigh);
-        *b = _mm256_blend_ps(perm_neigh_min, perm_neigh_max, 0xF0);
-    }
-    {
-        __m256 perm_neigh = _mm256_permute_ps(*b, _MM_SHUFFLE(1, 0, 3, 2));
-        __m256 perm_neigh_min = _mm256_min_ps(*b, perm_neigh);
-        __m256 perm_neigh_max = _mm256_max_ps(*b, perm_neigh);
-        *b = _mm256_blend_ps(perm_neigh_min, perm_neigh_max, 0xCC);
-    }
-    {
-        __m256 perm_neigh = _mm256_permute_ps(*b, _MM_SHUFFLE(2, 3, 0, 1));
-        __m256 perm_neigh_min = _mm256_min_ps(*b, perm_neigh);
-        __m256 perm_neigh_max = _mm256_max_ps(*b, perm_neigh);
-        *b = _mm256_blend_ps(perm_neigh_min, perm_neigh_max, 0xAA);
-    }   
+
+    *a = simd_aftermerge_8f(*a);
+    *b = simd_aftermerge_8f(*b);
 }
 
-#define FLOAT_PINF (0x7F800000)
+// positive infinity
+#define FLOAT_PINF (0x7F800000) 
 
 static inline __m256i loadstore_mask(int element_count)
 {
@@ -348,7 +338,6 @@ int simd_sort_float(float* array, int element_count)
         __m256 a = _mm256_load_partial(array, last_vec_size);
         a = simd_sort_8f(a);
         _mm256_store_partial(array, a, last_vec_size);
-
         return SIMD_SORT_OK;
     }
 
@@ -359,7 +348,6 @@ int simd_sort_float(float* array, int element_count)
         simd_sort_16f(&a, &b);
         _mm256_store_ps(array, a);
         _mm256_store_partial(array+8, b, last_vec_size);
-
         return SIMD_SORT_OK;
     }
     return SIMD_SORT_TOOMANYELEMENTS;
