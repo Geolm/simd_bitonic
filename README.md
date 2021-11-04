@@ -13,7 +13,7 @@ Profile was done by sorting 10,000,000 times an array from random elements. The 
 
 ![AVX chart](/images/AVX_chart.png)
 
-Note that we can clearly see that the sort is more optimal when the array size is multiple of 8 which is the AVX register size.
+Note that we can clearly see that the sort is more optimal when the array size is multiple of 8 which is the number of floats that an AVX register can store.
 
 
 # Why is it faster?
@@ -24,6 +24,6 @@ Note that we can clearly see that the sort is more optimal when the array size i
 
 # Drawbacks
 * Only for small arrays, currently only size <= 32 floats are supported
-* Sort only floats, cannot sort a structure with a float in for example
+* Sort only "pure" floats, cannot sort an array of struct {float a; int b;}  for example
 * Works only aligned (16 or 32 bytes depending on the platform) array 
-* No non-SIMD implementation. Bitonic sort is slower than std::sort if not done in parallel.
+* Needs SIMD to be parallel and quick
