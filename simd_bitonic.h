@@ -562,7 +562,7 @@ int simd_sort_float(float* array, int element_count)
         __m256 e = _mm256_load_ps(array+32);
         __m256 f = _mm256_load_ps(array+40);
         __m256 g = _mm256_load_ps(array+48);
-        __m256 h = _mm256_load_partial(array+48, last_vec_size);
+        __m256 h = _mm256_load_partial(array+56, last_vec_size);
         simd_sort_64f(&a, &b, &c, &d, &e, &f, &g, &h);
         _mm256_store_ps(array, a);
         _mm256_store_ps(array+8, b);

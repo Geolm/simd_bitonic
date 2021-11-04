@@ -67,11 +67,59 @@ void profile(int array_size)
     //printf("%f times faster for %2d elements\n", stl_duration/bitonic_duration, array_size);
 }
 
+void check_correctness(int array_size)
+{
+    ALIGNED_VARIABLE float array[MAX_ARRAY_SIZE];
+    
+    std::vector<float> vector;
+    vector.resize(array_size);
+
+    for(int j=0; j<array_size; ++j)
+    {
+        vector[j] = (iq_random_float(&seed) - 0.5f) * 10000.f;
+        array[j] = vector[j];
+    }
+
+    std::sort(vector.begin(), vector.end());
+    simd_sort_float(array, array_size);
+
+    for(int j=0; j<array_size; ++j)
+    {
+        assert(vector[j] == array[j]);
+    }
+}
+
+void check_error_code()
+{
+    assert(simd_sort_float(nullptr, 65890) == SIMD_SORT_TOOMANYELEMENTS);
+    assert(simd_sort_float(nullptr, 0) == SIMD_SORT_NOTHINGTOSORT);
+    assert(simd_sort_float((float*) 0x123, 12) == SIMD_SORT_NOTALIGNED);
+}
+
 int main(int argc, const char * argv[])
 {
-    
-    
     stm_setup();
+    
+    seed = (int)stm_now();
+    
+    printf("checking error codes\n");
+    
+    check_error_code();
+
+    printf("checking correctness ");
+    for(int a=0; a<100000; ++a)
+    {
+        for(int i=2; i<=MAX_ARRAY_SIZE; ++i)
+            check_correctness(i);
+        
+        if (a%10000 == 0)
+            printf(".");
+    }
+    
+    
+    seed = 0x12345678;
+    
+    printf("\nchecking performances\n");
     
     for(int i=2; i<=MAX_ARRAY_SIZE; ++i)
         profile(i);
