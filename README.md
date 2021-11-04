@@ -9,7 +9,7 @@ AVX (x64) and NEON (arm) implementation using intrinsics.
 # Results
 
 ## Mac mini 2018, i7, AVX
-Profile was done by sorting 10,000,000 times an array from random elements. The simd bitonic sort is almost 7x faster at best.
+Profile was done by sorting 10,000,000 times an array from random elements. The simd bitonic sort is almost 7x faster than std::sort() at best.
 
 ![AVX chart](/images/AVX_chart.png)
 
@@ -27,3 +27,7 @@ Note that we can clearly see that the sort is more optimal when the array size i
 * Sort only "pure" floats, cannot sort an array of struct {float a; int b;}  for example
 * Works only aligned (16 or 32 bytes depending on the platform) array 
 * Needs SIMD to be parallel and quick
+
+# What are the use-case examples?
+* Sorting values for image compression, usually 8x8 or 4x4 pixels
+* Sorting values for kdtree building, for example each leaf of kdtree could have 16 points and when we need to split the node we sort the points using one axis
