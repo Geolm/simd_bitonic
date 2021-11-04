@@ -9,7 +9,7 @@ AVX (x64) and NEON (arm) implementation using intrinsics.
 # Results
 
 ## Mac mini 2018, i7, AVX
-Profile was done by sorting 10,000,000 times an array from random elements. The simd bitonic sort is up to 5.8x faster.
+Profile was done by sorting 10,000,000 times an array from random elements. The simd bitonic sort is almost 6x faster at best.
 
 ![AVX chart](/images/AVX_chart.png)
 
