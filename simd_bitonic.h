@@ -345,6 +345,49 @@ static inline void simd_sort_56f(__m256* a, __m256* b, __m256* c, __m256* d, __m
 {
     simd_sort_32f(a, b, c, d);
     simd_sort_24f(e, f, g);
+    simd_permute_minmax_16f(c, f);
+    simd_permute_minmax_16f(d, e);
+    simd_permute_minmax_16f(b, g);
+    simd_minmax_16f(a, c);
+    simd_minmax_16f(b, d);
+    simd_minmax_16f(a, b);
+    simd_minmax_16f(c, d);
+    simd_minmax_16f(e, g);
+    simd_minmax_16f(e, f);
+    *a = simd_aftermerge_8f(*a);
+    *b = simd_aftermerge_8f(*b);
+    *c = simd_aftermerge_8f(*c);
+    *d = simd_aftermerge_8f(*d);
+    *e = simd_aftermerge_8f(*e);
+    *f = simd_aftermerge_8f(*f);
+    *g = simd_aftermerge_8f(*g);
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+static inline void simd_sort_64f(__m256* a, __m256* b, __m256* c, __m256* d, __m256* e, __m256* f, __m256* g, __m256* h)
+{
+    simd_sort_32f(a, b, c, d);
+    simd_sort_32f(e, f, g, h);
+    simd_permute_minmax_16f(a, h);
+    simd_permute_minmax_16f(b, g);
+    simd_permute_minmax_16f(c, f);
+    simd_permute_minmax_16f(d, e);
+    simd_minmax_16f(a, c);
+    simd_minmax_16f(b, d);
+    simd_minmax_16f(a, b);
+    simd_minmax_16f(c, d);
+    simd_minmax_16f(e, g);
+    simd_minmax_16f(f, h);
+    simd_minmax_16f(e, f);
+    simd_minmax_16f(g, h);
+    *a = simd_aftermerge_8f(*a);
+    *b = simd_aftermerge_8f(*b);
+    *c = simd_aftermerge_8f(*c);
+    *d = simd_aftermerge_8f(*d);
+    *e = simd_aftermerge_8f(*e);
+    *f = simd_aftermerge_8f(*f);
+    *g = simd_aftermerge_8f(*g);
+    *h = simd_aftermerge_8f(*h);
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -487,6 +530,48 @@ int simd_sort_float(float* array, int element_count)
         _mm256_store_ps(array+24, d);
         _mm256_store_ps(array+32, e);
         _mm256_store_partial(array+40, f, last_vec_size);
+        return SIMD_SORT_OK;
+    }
+
+    if (element_count <= 56)
+    {
+        __m256 a = _mm256_load_ps(array);
+        __m256 b = _mm256_load_ps(array+8);
+        __m256 c = _mm256_load_ps(array+16);
+        __m256 d = _mm256_load_ps(array+24);
+        __m256 e = _mm256_load_ps(array+32);
+        __m256 f = _mm256_load_ps(array+40);
+        __m256 g = _mm256_load_partial(array+48, last_vec_size);
+        simd_sort_56f(&a, &b, &c, &d, &e, &f, &g);
+        _mm256_store_ps(array, a);
+        _mm256_store_ps(array+8, b);
+        _mm256_store_ps(array+16, c);
+        _mm256_store_ps(array+24, d);
+        _mm256_store_ps(array+32, e);
+        _mm256_store_ps(array+40, f);
+        _mm256_store_partial(array+48, g, last_vec_size);
+        return SIMD_SORT_OK;
+    }
+
+    if (element_count <= 64)
+    {
+        __m256 a = _mm256_load_ps(array);
+        __m256 b = _mm256_load_ps(array+8);
+        __m256 c = _mm256_load_ps(array+16);
+        __m256 d = _mm256_load_ps(array+24);
+        __m256 e = _mm256_load_ps(array+32);
+        __m256 f = _mm256_load_ps(array+40);
+        __m256 g = _mm256_load_ps(array+48);
+        __m256 h = _mm256_load_partial(array+48, last_vec_size);
+        simd_sort_64f(&a, &b, &c, &d, &e, &f, &g, &h);
+        _mm256_store_ps(array, a);
+        _mm256_store_ps(array+8, b);
+        _mm256_store_ps(array+16, c);
+        _mm256_store_ps(array+24, d);
+        _mm256_store_ps(array+32, e);
+        _mm256_store_ps(array+40, f);
+        _mm256_store_ps(array+48, g);
+        _mm256_store_partial(array+56, h, last_vec_size);
         return SIMD_SORT_OK;
     }
 
