@@ -46,6 +46,9 @@ int simd_sort_float(float* array, int element_count);
 
 #include <assert.h>
 
+// positive infinity float hexadecimal value
+#define FLOAT_PINF (0x7F800000) 
+
 //----------------------------------------------------------------------------------------------------------------------
 // Neon
 //----------------------------------------------------------------------------------------------------------------------
@@ -139,13 +142,40 @@ static inline void simd_minmax_2V(float32x4_t *a, float32x4_t *b)
 //----------------------------------------------------------------------------------------------------------------------
 static inline float32x4_t simd_load_partial(const float* array, int index, int element_count)
 {
-    return vld1q_f32(array + SIMD_VECTOR_WIDTH * index);
+    int array_index = SIMD_VECTOR_WIDTH * index;
+    if (element_count == SIMD_VECTOR_WIDTH)
+        return vld1q_f32(array + array_index);
+    
+    float32x4_t result = vmovq_n_f32(FLOAT_PINF);
+    result = vsetq_lane_f32(array[array_index + 0], result, 0);
+    
+    if (element_count > 1)
+        result = vsetq_lane_f32(array[array_index + 1], result, 1);
+    
+    if (element_count > 2)
+        result = vsetq_lane_f32(array[array_index + 2], result, 1);
+    
+    return result;
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 static inline void simd_store_partial(float* array, float32x4_t a, int index, int element_count)
-{
-    vst1q_f32(array + SIMD_VECTOR_WIDTH * index, a);
+{   
+    int array_index = SIMD_VECTOR_WIDTH * index;
+    if (element_count == SIMD_VECTOR_WIDTH)
+    {
+        vst1q_f32(array + array_index, a);
+    }
+    else
+    {
+        array[array_index] = vgetq_lane_f32(a, 0);
+        
+        if (element_count > 1)
+            array[array_index+1] = vgetq_lane_f32(a, 1);
+        
+        if (element_count > 2)
+            array[array_index+2] = vgetq_lane_f32(a, 2);
+    }
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -169,8 +199,6 @@ static inline void simd_store_vector(float* array, float32x4_t a, int index)
 #include <immintrin.h>
 #include <stdint.h>
 
-// positive infinity float hexadecimal value
-#define FLOAT_PINF (0x7F800000) 
 #define SIMD_VECTOR_WIDTH (8)
 #define SIMD_ALIGNEMENT (32)
 
@@ -288,31 +316,25 @@ static inline __m256i loadstore_mask(int element_count)
 //----------------------------------------------------------------------------------------------------------------------
 static inline __m256 simd_load_partial(const float* array, int index, int element_count)
 {
-    assert(element_count<=SIMD_VECTOR_WIDTH && element_count>0);
     if (element_count == SIMD_VECTOR_WIDTH)
-    {
         return _mm256_load_ps(array + index * SIMD_VECTOR_WIDTH);
-    }
-    else
-    {
-        __m256 inf_mask = _mm256_cvtepi32_ps(_mm256_set_epi32(FLOAT_PINF, 
-                                           (element_count>6) ? 0 : FLOAT_PINF,
-                                           (element_count>5) ? 0 : FLOAT_PINF,
-                                           (element_count>4) ? 0 : FLOAT_PINF,
-                                           (element_count>3) ? 0 : FLOAT_PINF,
-                                           (element_count>2) ? 0 : FLOAT_PINF,
-                                           (element_count>1) ? 0 : FLOAT_PINF,
-                                           (element_count>0) ? 0 : FLOAT_PINF));
-        
-        __m256 a = _mm256_maskload_ps(array + index * SIMD_VECTOR_WIDTH, loadstore_mask(element_count));
-        return _mm256_or_ps(a, inf_mask);
-    }
+    
+    __m256 inf_mask = _mm256_cvtepi32_ps(_mm256_set_epi32(FLOAT_PINF,
+                                       (element_count>6) ? 0 : FLOAT_PINF,
+                                       (element_count>5) ? 0 : FLOAT_PINF,
+                                       (element_count>4) ? 0 : FLOAT_PINF,
+                                       (element_count>3) ? 0 : FLOAT_PINF,
+                                       (element_count>2) ? 0 : FLOAT_PINF,
+                                       (element_count>1) ? 0 : FLOAT_PINF,
+                                       (element_count>0) ? 0 : FLOAT_PINF));
+    
+    __m256 a = _mm256_maskload_ps(array + index * SIMD_VECTOR_WIDTH, loadstore_mask(element_count));
+    return _mm256_or_ps(a, inf_mask);
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 static inline void simd_store_partial(float* array, __m256 a, int index, int element_count)
 {
-    assert(element_count<=SIMD_VECTOR_WIDTH && element_count>0);
     if (element_count == SIMD_VECTOR_WIDTH)
     {
         _mm256_store_ps(array + index * SIMD_VECTOR_WIDTH, a);
