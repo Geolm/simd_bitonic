@@ -23,8 +23,6 @@ DOCUMENTATION
             SIMD_SORT_NOTHINGTOSORT     element_count is zero, nothing to sort
 */
 
-// http://performanceguidelines.blogspot.com/2013/08/sorting-algorithms-on-gpu.html
-
 
 #ifndef __SIMD_BITONIC__
 #define __SIMD_BITONIC__
