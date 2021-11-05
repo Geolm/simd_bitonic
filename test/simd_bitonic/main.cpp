@@ -11,7 +11,7 @@
 #include <stdio.h>
 
 #define ALIGNED_VARIABLE __attribute__((aligned(SIMD_ALIGNEMENT)))
-#define NUMBER_OF_SORTS (1000000)
+#define NUMBER_OF_SORTS (10000000)
 #define MAX_ARRAY_SIZE (SIMD_VECTOR_WIDTH * 13)
 
 int seed = 0x12345678;

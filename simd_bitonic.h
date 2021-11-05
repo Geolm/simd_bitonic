@@ -153,7 +153,7 @@ static inline float32x4_t simd_load_partial(const float* array, int index, int e
         result = vsetq_lane_f32(array[array_index + 1], result, 1);
     
     if (element_count > 2)
-        result = vsetq_lane_f32(array[array_index + 2], result, 1);
+        result = vsetq_lane_f32(array[array_index + 2], result, 2);
     
     return result;
 }
