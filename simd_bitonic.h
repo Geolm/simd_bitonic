@@ -713,6 +713,9 @@ int simd_sort_float(float* array, int element_count)
     if (!element_count)
         return SIMD_SORT_NOTHINGTOSORT;
 
+    if (element_count == 1)
+        return SIMD_SORT_OK;
+
     const intptr_t address = (intptr_t) array;
     if (address%SIMD_ALIGNEMENT != 0)
         return SIMD_SORT_NOTALIGNED;

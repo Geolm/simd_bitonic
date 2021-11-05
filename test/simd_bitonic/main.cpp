@@ -121,7 +121,7 @@ int main(int argc, const char * argv[])
     
     printf("\nchecking performances\n");
     
-    for(int i=2; i<=MAX_ARRAY_SIZE; ++i)
+    for(int i=1; i<=MAX_ARRAY_SIZE; ++i)
         profile(i);
     
     return 0;
