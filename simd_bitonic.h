@@ -146,7 +146,8 @@ static inline float32x4_t simd_load_partial(const float* array, int index, int e
     if (element_count == SIMD_VECTOR_WIDTH)
         return vld1q_f32(array + array_index);
     
-    float32x4_t result = vmovq_n_f32(FLOAT_PINF);
+    uint32_t float_positive_inf = FLOAT_PINF;
+    float32x4_t result = vmovq_n_f32(*(float*)&float_positive_inf);
     result = vsetq_lane_f32(array[array_index + 0], result, 0);
     
     if (element_count > 1)
