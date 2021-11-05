@@ -8,13 +8,21 @@ AVX (x64) and NEON (arm) implementation using intrinsics.
 
 # Results
 
+Profile was done by sorting 10,000,000 times an array from random elements. 
+
 ## Mac mini 2018, i7, AVX
-Profile was done by sorting 10,000,000 times an array from random elements. The simd bitonic sort is almost 7x faster than std::sort() at best.
+Array size vary from 2 to 128 elements. The simd bitonic sort is almost 7x faster than std::sort() at best.
 
 ![AVX chart](/images/AVX_chart.png)
 
-Note that we can clearly see that the sort is more optimal when the array size is multiple of 8 which is the number of floats that an AVX register can store.
+Note that we can clearly see that the sort is more optimal when the array size is multiple of 8. Because loading data is faster and all float in the registers are used to do the sort.
 
+## M1 macbook air (2020), Neon
+Array size vary from 2 to 64 elements.
+
+![Neon chart](/images/NEON_chart.png)
+
+This chart is more all over the place, gain are still impressive though.
 
 # Why is it faster?
 
