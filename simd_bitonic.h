@@ -525,6 +525,93 @@ static inline void simd_sort_10V(__m256* a, __m256* b, __m256* c, __m256* d, __m
 }
 
 //----------------------------------------------------------------------------------------------------------------------
+static inline void simd_sort_11V(__m256* a, __m256* b, __m256* c, __m256* d, __m256* e, __m256* f, __m256* g, __m256* h, __m256* i, __m256* j, __m256* k)
+{
+    simd_sort_8V(a, b, c, d, e, f, g, h);
+    simd_sort_3V(i, j, k);
+    simd_permute_minmax_2V(f, k);
+    simd_permute_minmax_2V(g, j);
+    simd_permute_minmax_2V(h, i);
+    simd_aftermerge_8V(a, b, c, d, e, f, g, h);
+    simd_aftermerge_3V(i, j, k);
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+static inline void simd_sort_12V(__m256* a, __m256* b, __m256* c, __m256* d, __m256* e, __m256* f, __m256* g, __m256* h, __m256* i, __m256* j, __m256* k, __m256* l)
+{
+    simd_sort_8V(a, b, c, d, e, f, g, h);
+    simd_sort_4V(i, j, k, l);
+    simd_permute_minmax_2V(e, l);
+    simd_permute_minmax_2V(f, k);
+    simd_permute_minmax_2V(g, j);
+    simd_permute_minmax_2V(h, i);
+    simd_aftermerge_8V(a, b, c, d, e, f, g, h);
+    simd_aftermerge_4V(i, j, k, l);
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+static inline void simd_sort_13V(__m256* a, __m256* b, __m256* c, __m256* d, __m256* e, __m256* f, __m256* g, __m256* h, __m256* i, __m256* j, __m256* k, __m256* l, __m256 *m)
+{
+    simd_sort_8V(a, b, c, d, e, f, g, h);
+    simd_sort_5V(i, j, k, l, m);
+    simd_permute_minmax_2V(d, m);
+    simd_permute_minmax_2V(e, l);
+    simd_permute_minmax_2V(f, k);
+    simd_permute_minmax_2V(g, j);
+    simd_permute_minmax_2V(h, i);
+    simd_aftermerge_8V(a, b, c, d, e, f, g, h);
+    simd_aftermerge_5V(i, j, k, l, m);
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+static inline void simd_sort_14V(__m256* a, __m256* b, __m256* c, __m256* d, __m256* e, __m256* f, __m256* g, __m256* h, __m256* i, __m256* j, __m256* k, __m256* l, __m256 *m, __m256* n)
+{
+    simd_sort_8V(a, b, c, d, e, f, g, h);
+    simd_sort_6V(i, j, k, l, m, n);
+    simd_permute_minmax_2V(c, n);
+    simd_permute_minmax_2V(d, m);
+    simd_permute_minmax_2V(e, l);
+    simd_permute_minmax_2V(f, k);
+    simd_permute_minmax_2V(g, j);
+    simd_permute_minmax_2V(h, i);
+    simd_aftermerge_8V(a, b, c, d, e, f, g, h);
+    simd_aftermerge_6V(i, j, k, l, m, n);
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+static inline void simd_sort_15V(__m256* a, __m256* b, __m256* c, __m256* d, __m256* e, __m256* f, __m256* g, __m256* h, __m256* i, __m256* j, __m256* k, __m256* l, __m256 *m, __m256* n, __m256* o)
+{
+    simd_sort_8V(a, b, c, d, e, f, g, h);
+    simd_sort_7V(i, j, k, l, m, n, o);
+    simd_permute_minmax_2V(b, o);
+    simd_permute_minmax_2V(c, n);
+    simd_permute_minmax_2V(d, m);
+    simd_permute_minmax_2V(e, l);
+    simd_permute_minmax_2V(f, k);
+    simd_permute_minmax_2V(g, j);
+    simd_permute_minmax_2V(h, i);
+    simd_aftermerge_8V(a, b, c, d, e, f, g, h);
+    simd_aftermerge_7V(i, j, k, l, m, n, o);
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+static inline void simd_sort_16V(__m256* a, __m256* b, __m256* c, __m256* d, __m256* e, __m256* f, __m256* g, __m256* h, __m256* i, __m256* j, __m256* k, __m256* l, __m256 *m, __m256* n, __m256* o, __m256* p)
+{
+    simd_sort_8V(a, b, c, d, e, f, g, h);
+    simd_sort_8V(i, j, k, l, m, n, o, p);
+    simd_permute_minmax_2V(a, p);
+    simd_permute_minmax_2V(b, o);
+    simd_permute_minmax_2V(c, n);
+    simd_permute_minmax_2V(d, m);
+    simd_permute_minmax_2V(e, l);
+    simd_permute_minmax_2V(f, k);
+    simd_permute_minmax_2V(g, j);
+    simd_permute_minmax_2V(h, i);
+    simd_aftermerge_8V(a, b, c, d, e, f, g, h);
+    simd_aftermerge_8V(i, j, k, l, m, n, o, p);
+}
+
+//----------------------------------------------------------------------------------------------------------------------
 static inline __m256i loadstore_mask(int element_count)
 {
     return _mm256_set_epi32(0, 
@@ -756,6 +843,96 @@ int simd_sort_float(float* array, int element_count)
         _mm256_store_ps(array+56, h);
         _mm256_store_ps(array+64, i);
         _mm256_store_partial(array+72, j, last_vec_size);
+        return SIMD_SORT_OK;
+    }
+
+    if (element_count <= 88)
+    {
+        __m256 a = _mm256_load_ps(array);
+        __m256 b = _mm256_load_ps(array+8);
+        __m256 c = _mm256_load_ps(array+16);
+        __m256 d = _mm256_load_ps(array+24);
+        __m256 e = _mm256_load_ps(array+32);
+        __m256 f = _mm256_load_ps(array+40);
+        __m256 g = _mm256_load_ps(array+48);
+        __m256 h = _mm256_load_ps(array+56);
+        __m256 i = _mm256_load_ps(array+64);
+        __m256 j = _mm256_load_ps(array+72);
+        __m256 k = _mm256_load_partial(array+80, last_vec_size);
+        simd_sort_11V(&a, &b, &c, &d, &e, &f, &g, &h, &i, &j, &k);
+        _mm256_store_ps(array, a);
+        _mm256_store_ps(array+8, b);
+        _mm256_store_ps(array+16, c);
+        _mm256_store_ps(array+24, d);
+        _mm256_store_ps(array+32, e);
+        _mm256_store_ps(array+40, f);
+        _mm256_store_ps(array+48, g);
+        _mm256_store_ps(array+56, h);
+        _mm256_store_ps(array+64, i);
+        _mm256_store_ps(array+72, j);
+        _mm256_store_partial(array+80, k, last_vec_size);
+        return SIMD_SORT_OK;
+    }
+
+    if (element_count <= 96)
+    {
+        __m256 a = _mm256_load_ps(array);
+        __m256 b = _mm256_load_ps(array+8);
+        __m256 c = _mm256_load_ps(array+16);
+        __m256 d = _mm256_load_ps(array+24);
+        __m256 e = _mm256_load_ps(array+32);
+        __m256 f = _mm256_load_ps(array+40);
+        __m256 g = _mm256_load_ps(array+48);
+        __m256 h = _mm256_load_ps(array+56);
+        __m256 i = _mm256_load_ps(array+64);
+        __m256 j = _mm256_load_ps(array+72);
+        __m256 k = _mm256_load_ps(array+80);
+        __m256 l = _mm256_load_partial(array+88, last_vec_size);
+        simd_sort_12V(&a, &b, &c, &d, &e, &f, &g, &h, &i, &j, &k, &l);
+        _mm256_store_ps(array, a);
+        _mm256_store_ps(array+8, b);
+        _mm256_store_ps(array+16, c);
+        _mm256_store_ps(array+24, d);
+        _mm256_store_ps(array+32, e);
+        _mm256_store_ps(array+40, f);
+        _mm256_store_ps(array+48, g);
+        _mm256_store_ps(array+56, h);
+        _mm256_store_ps(array+64, i);
+        _mm256_store_ps(array+72, j);
+        _mm256_store_ps(array+80, k);
+        _mm256_store_partial(array+88, l, last_vec_size);
+        return SIMD_SORT_OK;
+    }
+
+    if (element_count <= 104)
+    {
+        __m256 a = _mm256_load_ps(array);
+        __m256 b = _mm256_load_ps(array+8);
+        __m256 c = _mm256_load_ps(array+16);
+        __m256 d = _mm256_load_ps(array+24);
+        __m256 e = _mm256_load_ps(array+32);
+        __m256 f = _mm256_load_ps(array+40);
+        __m256 g = _mm256_load_ps(array+48);
+        __m256 h = _mm256_load_ps(array+56);
+        __m256 i = _mm256_load_ps(array+64);
+        __m256 j = _mm256_load_ps(array+72);
+        __m256 k = _mm256_load_ps(array+80);
+        __m256 l = _mm256_load_ps(array+88);
+        __m256 m = _mm256_load_partial(array+96, last_vec_size);
+        simd_sort_13V(&a, &b, &c, &d, &e, &f, &g, &h, &i, &j, &k, &l, &m);
+        _mm256_store_ps(array, a);
+        _mm256_store_ps(array+8, b);
+        _mm256_store_ps(array+16, c);
+        _mm256_store_ps(array+24, d);
+        _mm256_store_ps(array+32, e);
+        _mm256_store_ps(array+40, f);
+        _mm256_store_ps(array+48, g);
+        _mm256_store_ps(array+56, h);
+        _mm256_store_ps(array+64, i);
+        _mm256_store_ps(array+72, j);
+        _mm256_store_ps(array+80, k);
+        _mm256_store_ps(array+88, l);
+        _mm256_store_partial(array+96, m, last_vec_size);
         return SIMD_SORT_OK;
     }
 

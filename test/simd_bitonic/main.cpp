@@ -12,7 +12,7 @@
 
 #define ALIGNED_VARIABLE __attribute__((aligned(32)))
 #define NUMBER_OF_SORTS (1000000)
-#define MAX_ARRAY_SIZE (80)
+#define MAX_ARRAY_SIZE (104)
 
 int seed = 0x12345678;
 
