@@ -54,6 +54,11 @@ int simd_sort_float(float* array, int element_count);
 #include <arm_neon.h>
 
 #define ALIGN_STRUCT(x) __attribute__((aligned(x)))
+#define SIMD_VECTOR_WIDTH (4)
+#define SIMD_ALIGNEMENT (16)
+
+typedef float32x4_t simd_vector;
+
 
 //----------------------------------------------------------------------------------------------------------------------
 static inline float32x4_t vblendq_f32(float32x4_t _a, float32x4_t _b, const char imm8)
@@ -71,7 +76,7 @@ static inline float32x4_t vblendq_f32(float32x4_t _a, float32x4_t _b, const char
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-static inline float32x4_t simd_sort_4f(float32x4_t input)
+static inline float32x4_t simd_sort_1V(float32x4_t input)
 {
     {
         float32x4_t perm_neigh = vrev64q_f32(input);
@@ -95,7 +100,7 @@ static inline float32x4_t simd_sort_4f(float32x4_t input)
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-static inline float32x4_t simd_aftermerge_4f(float32x4_t input)
+static inline float32x4_t simd_aftermerge_1V(float32x4_t input)
 {
     {
         float32x4_t perm_neigh = __builtin_shufflevector(input, input, 2, 3, 0, 1);
@@ -113,7 +118,7 @@ static inline float32x4_t simd_aftermerge_4f(float32x4_t input)
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-static inline void simd_permute_minmax_8f(float32x4_t *a, float32x4_t *b)
+static inline void simd_permute_minmax_2V(float32x4_t *a, float32x4_t *b)
 {
     float32x4_t perm_neigh = __builtin_shufflevector(*b, *b, 3, 2, 1, 0);
     float32x4_t perm_neigh_min = vminq_f32(*a, perm_neigh);
@@ -123,17 +128,7 @@ static inline void simd_permute_minmax_8f(float32x4_t *a, float32x4_t *b)
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-static inline void simd_sort_1V(float32x4_t *a, float32x4_t *b)
-{
-    *a = simd_sort_4f(*a);
-    *b = simd_sort_4f(*b);
-    simd_permute_minmax_8f(a, b);
-    *a = simd_aftermerge_4f(*a);
-    *b = simd_aftermerge_4f(*b);
-}
-
-//----------------------------------------------------------------------------------------------------------------------
-static inline void simd_minmax_8f(float32x4_t *a, float32x4_t *b)
+static inline void simd_minmax_2V(float32x4_t *a, float32x4_t *b)
 {
     float32x4_t perm_neigh_min = vminq_f32(*a, *b);
     float32x4_t perm_neigh_max = vmaxq_f32(*a, *b);
@@ -142,24 +137,27 @@ static inline void simd_minmax_8f(float32x4_t *a, float32x4_t *b)
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-static inline void simd_sort_2V(float32x4_t *a, float32x4_t *b, float32x4_t *c, float32x4_t *d)
+static inline float32x4_t simd_load_partial(const float* array, int index, int element_count)
 {
-    simd_sort_1V(a, b);
-    simd_sort_1V(c, d);
-    simd_permute_minmax_8f(a, d);
-    simd_permute_minmax_8f(b, c);
-    simd_minmax_8f(a, b);
-    simd_minmax_8f(c, d);
-    *a = simd_aftermerge_4f(*a);
-    *b = simd_aftermerge_4f(*b);
-    *c = simd_aftermerge_4f(*c);
-    *d = simd_aftermerge_4f(*d);
+    return vld1q_f32(array + SIMD_VECTOR_WIDTH * index);
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-int simd_sort_float(float* array, int element_count)
+static inline void simd_store_partial(float* array, float32x4_t a, int index, int element_count)
 {
-    return SIMD_SORT_TOOMANYELEMENTS;
+    vst1q_f32(array + SIMD_VECTOR_WIDTH * index, a);
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+static inline float32x4_t simd_load_vector(const float* array, int index)
+{
+    return vld1q_f32(array + SIMD_VECTOR_WIDTH * index);
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+static inline void simd_store_vector(float* array, float32x4_t a, int index)
+{
+    vst1q_f32(array + SIMD_VECTOR_WIDTH * index, a);
 }
 
 #else
@@ -171,8 +169,16 @@ int simd_sort_float(float* array, int element_count)
 #include <immintrin.h>
 #include <stdint.h>
 
+// positive infinity float hexadecimal value
+#define FLOAT_PINF (0x7F800000) 
+#define SIMD_VECTOR_WIDTH (8)
+#define SIMD_ALIGNEMENT (32)
+
+typedef __m256 simd_vector;
+
+
 //----------------------------------------------------------------------------------------------------------------------
-static inline __m256 _mm256_swap(__m256 input)
+static inline simd_vector _mm256_swap(__m256 input)
 {
     __m128 lo = _mm256_extractf128_ps(input, 0);
     __m128 hi = _mm256_extractf128_ps(input, 1);
@@ -199,7 +205,7 @@ static inline void simd_permute_minmax_2V(__m256* a, __m256* b)
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-static inline __m256 simd_sort_1V(__m256 input)
+static inline __m256 simd_sort_1V(simd_vector input)
 {
     {
         __m256 perm_neigh = _mm256_permute_ps(input, _MM_SHUFFLE(2, 3, 0, 1));
@@ -242,7 +248,7 @@ static inline __m256 simd_sort_1V(__m256 input)
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-static inline __m256 simd_aftermerge_1V(__m256 a)
+static inline __m256 simd_aftermerge_1V(simd_vector a)
 {
     {
         __m256 swap = _mm256_swap(a);
@@ -267,7 +273,75 @@ static inline __m256 simd_aftermerge_1V(__m256 a)
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-static inline void simd_aftermerge_2V(__m256 *a, __m256 *b)
+static inline __m256i loadstore_mask(int element_count)
+{
+    return _mm256_set_epi32(0, 
+                            (element_count>6) ? 0xffffffff : 0,
+                            (element_count>5) ? 0xffffffff : 0,
+                            (element_count>4) ? 0xffffffff : 0,
+                            (element_count>3) ? 0xffffffff : 0,
+                            (element_count>2) ? 0xffffffff : 0,
+                            (element_count>1) ? 0xffffffff : 0,
+                            (element_count>0) ? 0xffffffff : 0);
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+static inline __m256 simd_load_partial(const float* array, int index, int element_count)
+{
+    assert(element_count<=SIMD_VECTOR_WIDTH && element_count>0);
+    if (element_count == SIMD_VECTOR_WIDTH)
+    {
+        return _mm256_load_ps(array + index * SIMD_VECTOR_WIDTH);
+    }
+    else
+    {
+        __m256 inf_mask = _mm256_cvtepi32_ps(_mm256_set_epi32(FLOAT_PINF, 
+                                           (element_count>6) ? 0 : FLOAT_PINF,
+                                           (element_count>5) ? 0 : FLOAT_PINF,
+                                           (element_count>4) ? 0 : FLOAT_PINF,
+                                           (element_count>3) ? 0 : FLOAT_PINF,
+                                           (element_count>2) ? 0 : FLOAT_PINF,
+                                           (element_count>1) ? 0 : FLOAT_PINF,
+                                           (element_count>0) ? 0 : FLOAT_PINF));
+        
+        __m256 a = _mm256_maskload_ps(array + index * SIMD_VECTOR_WIDTH, loadstore_mask(element_count));
+        return _mm256_or_ps(a, inf_mask);
+    }
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+static inline void simd_store_partial(float* array, __m256 a, int index, int element_count)
+{
+    assert(element_count<=SIMD_VECTOR_WIDTH && element_count>0);
+    if (element_count == SIMD_VECTOR_WIDTH)
+    {
+        _mm256_store_ps(array + index * SIMD_VECTOR_WIDTH, a);
+    }
+    else
+    {
+        _mm256_maskstore_ps(array + index * SIMD_VECTOR_WIDTH, loadstore_mask(element_count), a);
+    }
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+static inline __m256 simd_load_vector(const float* array, int index)
+{
+    return _mm256_load_ps(array + SIMD_VECTOR_WIDTH * index);
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+static inline void simd_store_vector(float* array, __m256 a, int index)
+{
+    _mm256_store_ps(array + SIMD_VECTOR_WIDTH * index, a);
+}
+
+
+//----------------------------------------------------------------------------------------------------------------------
+#endif // AVX
+//----------------------------------------------------------------------------------------------------------------------
+
+//----------------------------------------------------------------------------------------------------------------------
+static inline void simd_aftermerge_2V(simd_vector *a, simd_vector *b)
 {
     simd_minmax_2V(a, b);
     *a = simd_aftermerge_1V(*a);
@@ -275,7 +349,7 @@ static inline void simd_aftermerge_2V(__m256 *a, __m256 *b)
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-static inline void simd_aftermerge_3V(__m256 *a, __m256 *b, __m256 *c)
+static inline void simd_aftermerge_3V(simd_vector *a, simd_vector *b, simd_vector *c)
 {
     simd_minmax_2V(a, c);
     simd_minmax_2V(a, b);
@@ -285,7 +359,7 @@ static inline void simd_aftermerge_3V(__m256 *a, __m256 *b, __m256 *c)
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-static inline void simd_aftermerge_4V(__m256 *a, __m256 *b, __m256 *c, __m256 *d)
+static inline void simd_aftermerge_4V(simd_vector *a, simd_vector *b, simd_vector *c, simd_vector *d)
 {
     simd_minmax_2V(a, c);
     simd_minmax_2V(b, d);
@@ -298,7 +372,7 @@ static inline void simd_aftermerge_4V(__m256 *a, __m256 *b, __m256 *c, __m256 *d
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-static inline void simd_aftermerge_5V(__m256 *a, __m256 *b, __m256 *c, __m256 *d, __m256* e)
+static inline void simd_aftermerge_5V(simd_vector *a, simd_vector *b, simd_vector *c, simd_vector *d, simd_vector* e)
 {
     simd_minmax_2V(a, e);
     simd_minmax_2V(a, c);
@@ -313,7 +387,7 @@ static inline void simd_aftermerge_5V(__m256 *a, __m256 *b, __m256 *c, __m256 *d
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-static inline void simd_aftermerge_6V(__m256 *a, __m256 *b, __m256 *c, __m256 *d, __m256* e, __m256* f)
+static inline void simd_aftermerge_6V(simd_vector *a, simd_vector *b, simd_vector *c, simd_vector *d, simd_vector* e, simd_vector* f)
 {
     simd_minmax_2V(a, e);
     simd_minmax_2V(b, f);
@@ -331,7 +405,7 @@ static inline void simd_aftermerge_6V(__m256 *a, __m256 *b, __m256 *c, __m256 *d
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-static inline void simd_aftermerge_7V(__m256 *a, __m256 *b, __m256 *c, __m256 *d, __m256* e, __m256* f, __m256 *g)
+static inline void simd_aftermerge_7V(simd_vector *a, simd_vector *b, simd_vector *c, simd_vector *d, simd_vector* e, simd_vector* f, simd_vector *g)
 {
     simd_minmax_2V(a, e);
     simd_minmax_2V(b, f);
@@ -352,7 +426,7 @@ static inline void simd_aftermerge_7V(__m256 *a, __m256 *b, __m256 *c, __m256 *d
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-static inline void simd_aftermerge_8V(__m256 *a, __m256 *b, __m256 *c, __m256 *d, __m256* e, __m256* f, __m256 *g, __m256* h)
+static inline void simd_aftermerge_8V(simd_vector *a, simd_vector *b, simd_vector *c, simd_vector *d, simd_vector* e, simd_vector* f, simd_vector *g, simd_vector* h)
 {
     simd_minmax_2V(a, e);
     simd_minmax_2V(b, f);
@@ -380,7 +454,7 @@ static inline void simd_aftermerge_8V(__m256 *a, __m256 *b, __m256 *c, __m256 *d
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-static inline void simd_sort_2V(__m256* a, __m256* b)
+static inline void simd_sort_2V(simd_vector* a, simd_vector* b)
 {
     *a = simd_sort_1V(*a);
     *b = simd_sort_1V(*b);
@@ -390,7 +464,7 @@ static inline void simd_sort_2V(__m256* a, __m256* b)
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-static inline void simd_sort_3V(__m256* a, __m256* b, __m256* c)
+static inline void simd_sort_3V(simd_vector* a, simd_vector* b, simd_vector* c)
 {
     simd_sort_2V(a, b);
     *c = simd_sort_1V(*c);
@@ -402,7 +476,7 @@ static inline void simd_sort_3V(__m256* a, __m256* b, __m256* c)
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-static inline void simd_sort_4V(__m256* a, __m256* b, __m256* c, __m256* d)
+static inline void simd_sort_4V(simd_vector* a, simd_vector* b, simd_vector* c, simd_vector* d)
 {
     simd_sort_2V(a, b);
     simd_sort_2V(c, d);
@@ -417,7 +491,7 @@ static inline void simd_sort_4V(__m256* a, __m256* b, __m256* c, __m256* d)
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-static inline void simd_sort_5V(__m256* a, __m256* b, __m256* c, __m256* d, __m256* e)
+static inline void simd_sort_5V(simd_vector* a, simd_vector* b, simd_vector* c, simd_vector* d, simd_vector* e)
 {
     simd_sort_4V(a, b, c, d);
     *e = simd_sort_1V(*e);
@@ -434,7 +508,7 @@ static inline void simd_sort_5V(__m256* a, __m256* b, __m256* c, __m256* d, __m2
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-static inline void simd_sort_6V(__m256* a, __m256* b, __m256* c, __m256* d, __m256* e, __m256* f)
+static inline void simd_sort_6V(simd_vector* a, simd_vector* b, simd_vector* c, simd_vector* d, simd_vector* e, simd_vector* f)
 {
     simd_sort_4V(a, b, c, d);
     simd_sort_2V(e, f);
@@ -454,7 +528,7 @@ static inline void simd_sort_6V(__m256* a, __m256* b, __m256* c, __m256* d, __m2
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-static inline void simd_sort_7V(__m256* a, __m256* b, __m256* c, __m256* d, __m256* e, __m256* f, __m256* g)
+static inline void simd_sort_7V(simd_vector* a, simd_vector* b, simd_vector* c, simd_vector* d, simd_vector* e, simd_vector* f, simd_vector* g)
 {
     simd_sort_4V(a, b, c, d);
     simd_sort_3V(e, f, g);
@@ -477,7 +551,7 @@ static inline void simd_sort_7V(__m256* a, __m256* b, __m256* c, __m256* d, __m2
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-static inline void simd_sort_8V(__m256* a, __m256* b, __m256* c, __m256* d, __m256* e, __m256* f, __m256* g, __m256* h)
+static inline void simd_sort_8V(simd_vector* a, simd_vector* b, simd_vector* c, simd_vector* d, simd_vector* e, simd_vector* f, simd_vector* g, simd_vector* h)
 {
     simd_sort_4V(a, b, c, d);
     simd_sort_4V(e, f, g, h);
@@ -504,7 +578,7 @@ static inline void simd_sort_8V(__m256* a, __m256* b, __m256* c, __m256* d, __m2
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-static inline void simd_sort_9V(__m256* a, __m256* b, __m256* c, __m256* d, __m256* e, __m256* f, __m256* g, __m256* h, __m256* i)
+static inline void simd_sort_9V(simd_vector* a, simd_vector* b, simd_vector* c, simd_vector* d, simd_vector* e, simd_vector* f, simd_vector* g, simd_vector* h, simd_vector* i)
 {
     simd_sort_8V(a, b, c, d, e, f, g, h);
     *i = simd_sort_1V(*i);
@@ -514,7 +588,7 @@ static inline void simd_sort_9V(__m256* a, __m256* b, __m256* c, __m256* d, __m2
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-static inline void simd_sort_10V(__m256* a, __m256* b, __m256* c, __m256* d, __m256* e, __m256* f, __m256* g, __m256* h, __m256* i, __m256* j)
+static inline void simd_sort_10V(simd_vector* a, simd_vector* b, simd_vector* c, simd_vector* d, simd_vector* e, simd_vector* f, simd_vector* g, simd_vector* h, simd_vector* i, simd_vector* j)
 {
     simd_sort_8V(a, b, c, d, e, f, g, h);
     simd_sort_2V(i, j);
@@ -525,7 +599,7 @@ static inline void simd_sort_10V(__m256* a, __m256* b, __m256* c, __m256* d, __m
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-static inline void simd_sort_11V(__m256* a, __m256* b, __m256* c, __m256* d, __m256* e, __m256* f, __m256* g, __m256* h, __m256* i, __m256* j, __m256* k)
+static inline void simd_sort_11V(simd_vector* a, simd_vector* b, simd_vector* c, simd_vector* d, simd_vector* e, simd_vector* f, simd_vector* g, simd_vector* h, simd_vector* i, simd_vector* j, simd_vector* k)
 {
     simd_sort_8V(a, b, c, d, e, f, g, h);
     simd_sort_3V(i, j, k);
@@ -537,7 +611,7 @@ static inline void simd_sort_11V(__m256* a, __m256* b, __m256* c, __m256* d, __m
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-static inline void simd_sort_12V(__m256* a, __m256* b, __m256* c, __m256* d, __m256* e, __m256* f, __m256* g, __m256* h, __m256* i, __m256* j, __m256* k, __m256* l)
+static inline void simd_sort_12V(simd_vector* a, simd_vector* b, simd_vector* c, simd_vector* d, simd_vector* e, simd_vector* f, simd_vector* g, simd_vector* h, simd_vector* i, simd_vector* j, simd_vector* k, simd_vector* l)
 {
     simd_sort_8V(a, b, c, d, e, f, g, h);
     simd_sort_4V(i, j, k, l);
@@ -550,7 +624,7 @@ static inline void simd_sort_12V(__m256* a, __m256* b, __m256* c, __m256* d, __m
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-static inline void simd_sort_13V(__m256* a, __m256* b, __m256* c, __m256* d, __m256* e, __m256* f, __m256* g, __m256* h, __m256* i, __m256* j, __m256* k, __m256* l, __m256 *m)
+static inline void simd_sort_13V(simd_vector* a, simd_vector* b, simd_vector* c, simd_vector* d, simd_vector* e, simd_vector* f, simd_vector* g, simd_vector* h, simd_vector* i, simd_vector* j, simd_vector* k, simd_vector* l, simd_vector *m)
 {
     simd_sort_8V(a, b, c, d, e, f, g, h);
     simd_sort_5V(i, j, k, l, m);
@@ -564,7 +638,7 @@ static inline void simd_sort_13V(__m256* a, __m256* b, __m256* c, __m256* d, __m
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-static inline void simd_sort_14V(__m256* a, __m256* b, __m256* c, __m256* d, __m256* e, __m256* f, __m256* g, __m256* h, __m256* i, __m256* j, __m256* k, __m256* l, __m256 *m, __m256* n)
+static inline void simd_sort_14V(simd_vector* a, simd_vector* b, simd_vector* c, simd_vector* d, simd_vector* e, simd_vector* f, simd_vector* g, simd_vector* h, simd_vector* i, simd_vector* j, simd_vector* k, simd_vector* l, simd_vector *m, simd_vector* n)
 {
     simd_sort_8V(a, b, c, d, e, f, g, h);
     simd_sort_6V(i, j, k, l, m, n);
@@ -579,7 +653,7 @@ static inline void simd_sort_14V(__m256* a, __m256* b, __m256* c, __m256* d, __m
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-static inline void simd_sort_15V(__m256* a, __m256* b, __m256* c, __m256* d, __m256* e, __m256* f, __m256* g, __m256* h, __m256* i, __m256* j, __m256* k, __m256* l, __m256 *m, __m256* n, __m256* o)
+static inline void simd_sort_15V(simd_vector* a, simd_vector* b, simd_vector* c, simd_vector* d, simd_vector* e, simd_vector* f, simd_vector* g, simd_vector* h, simd_vector* i, simd_vector* j, simd_vector* k, simd_vector* l, simd_vector *m, simd_vector* n, simd_vector* o)
 {
     simd_sort_8V(a, b, c, d, e, f, g, h);
     simd_sort_7V(i, j, k, l, m, n, o);
@@ -595,7 +669,7 @@ static inline void simd_sort_15V(__m256* a, __m256* b, __m256* c, __m256* d, __m
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-static inline void simd_sort_16V(__m256* a, __m256* b, __m256* c, __m256* d, __m256* e, __m256* f, __m256* g, __m256* h, __m256* i, __m256* j, __m256* k, __m256* l, __m256 *m, __m256* n, __m256* o, __m256* p)
+static inline void simd_sort_16V(simd_vector* a, simd_vector* b, simd_vector* c, simd_vector* d, simd_vector* e, simd_vector* f, simd_vector* g, simd_vector* h, simd_vector* i, simd_vector* j, simd_vector* k, simd_vector* l, simd_vector *m, simd_vector* n, simd_vector* o, simd_vector* p)
 {
     simd_sort_8V(a, b, c, d, e, f, g, h);
     simd_sort_8V(i, j, k, l, m, n, o, p);
@@ -612,334 +686,278 @@ static inline void simd_sort_16V(__m256* a, __m256* b, __m256* c, __m256* d, __m
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-static inline __m256i loadstore_mask(int element_count)
-{
-    return _mm256_set_epi32(0, 
-                            (element_count>6) ? 0xffffffff : 0,
-                            (element_count>5) ? 0xffffffff : 0,
-                            (element_count>4) ? 0xffffffff : 0,
-                            (element_count>3) ? 0xffffffff : 0,
-                            (element_count>2) ? 0xffffffff : 0,
-                            (element_count>1) ? 0xffffffff : 0,
-                            (element_count>0) ? 0xffffffff : 0);
-}
-
-// positive infinity float hexadecimal value
-#define FLOAT_PINF (0x7F800000) 
-
-//----------------------------------------------------------------------------------------------------------------------
-static inline __m256 _mm256_load_partial(const float* array, int element_count)
-{
-    assert(element_count<9 && element_count>0);
-    if (element_count == 8)
-    {
-        return _mm256_load_ps(array);
-    }
-    else
-    {
-        __m256 inf_mask = _mm256_cvtepi32_ps(_mm256_set_epi32(FLOAT_PINF, 
-                                           (element_count>6) ? 0 : FLOAT_PINF,
-                                           (element_count>5) ? 0 : FLOAT_PINF,
-                                           (element_count>4) ? 0 : FLOAT_PINF,
-                                           (element_count>3) ? 0 : FLOAT_PINF,
-                                           (element_count>2) ? 0 : FLOAT_PINF,
-                                           (element_count>1) ? 0 : FLOAT_PINF,
-                                           (element_count>0) ? 0 : FLOAT_PINF));
-        
-        __m256 a = _mm256_maskload_ps(array, loadstore_mask(element_count));
-        return _mm256_or_ps(a, inf_mask);
-    }
-}
-
-//----------------------------------------------------------------------------------------------------------------------
-static inline void _mm256_store_partial(float* array, __m256 a, int element_count)
-{
-    assert(element_count<9 && element_count>0);
-    if (element_count == 8)
-    {
-        _mm256_store_ps(array, a);
-    }
-    else
-    {
-        _mm256_maskstore_ps(array, loadstore_mask(element_count), a);
-    }
-}
-
-//----------------------------------------------------------------------------------------------------------------------
 int simd_sort_float(float* array, int element_count)
 {
     if (!element_count)
         return SIMD_SORT_NOTHINGTOSORT;
 
     const intptr_t address = (intptr_t) array;
-    if (address%32 != 0)
+    if (address%SIMD_ALIGNEMENT != 0)
         return SIMD_SORT_NOTALIGNED;
 
-    const int last_vec_size = (element_count%8) == 0 ? 8 : (element_count%8);
-    if (element_count <= 8)
+    const int last_vec_size = (element_count%SIMD_VECTOR_WIDTH) == 0 ? SIMD_VECTOR_WIDTH : (element_count%SIMD_VECTOR_WIDTH);
+    if (element_count <= SIMD_VECTOR_WIDTH)
     {
-        __m256 a = _mm256_load_partial(array, last_vec_size);
+        simd_vector a = simd_load_partial(array, 0, last_vec_size);
         a = simd_sort_1V(a);
-        _mm256_store_partial(array, a, last_vec_size);
+        simd_store_partial(array, a, 0, last_vec_size);
         return SIMD_SORT_OK;
     }
 
-    if (element_count <= 16)
+    if (element_count <= SIMD_VECTOR_WIDTH * 2)
     {
-        __m256 a = _mm256_load_ps(array);
-        __m256 b = _mm256_load_partial(array+8, last_vec_size);
+        simd_vector a = simd_load_vector(array, 0);
+        simd_vector b = simd_load_partial(array, 1, last_vec_size);
         simd_sort_2V(&a, &b);
-        _mm256_store_ps(array, a);
-        _mm256_store_partial(array+8, b, last_vec_size);
+        simd_store_vector(array, a, 0);
+        simd_store_partial(array, b, 1, last_vec_size);
         return SIMD_SORT_OK;
     }
     
-    if (element_count <= 24)
+    if (element_count <= SIMD_VECTOR_WIDTH * 3)
     {
-        __m256 a = _mm256_load_ps(array);
-        __m256 b = _mm256_load_ps(array+8);
-        __m256 c = _mm256_load_partial(array+16, last_vec_size);
+        simd_vector a = simd_load_vector(array, 0);
+        simd_vector b = simd_load_vector(array, 1);
+        simd_vector c = simd_load_partial(array, 2, last_vec_size);
         simd_sort_3V(&a, &b, &c);
-        _mm256_store_ps(array, a);
-        _mm256_store_ps(array+8, b);
-        _mm256_store_partial(array+16, c, last_vec_size);
+        simd_store_vector(array, a, 0);
+        simd_store_vector(array, b, 1);
+        simd_store_partial(array, c, 2, last_vec_size);
         return SIMD_SORT_OK;
     }
 
-    if (element_count <= 32)
+    if (element_count <= SIMD_VECTOR_WIDTH * 4)
     {
-        __m256 a = _mm256_load_ps(array);
-        __m256 b = _mm256_load_ps(array+8);
-        __m256 c = _mm256_load_ps(array+16);
-        __m256 d = _mm256_load_partial(array+24, last_vec_size);
+        simd_vector a = simd_load_vector(array, 0);
+        simd_vector b = simd_load_vector(array, 1);
+        simd_vector c = simd_load_vector(array, 2);
+        simd_vector d = simd_load_partial(array, 3, last_vec_size);
         simd_sort_4V(&a, &b, &c, &d);
-        _mm256_store_ps(array, a);
-        _mm256_store_ps(array+8, b);
-        _mm256_store_ps(array+16, c);
-        _mm256_store_partial(array+24, d, last_vec_size);
+        simd_store_vector(array, a, 0);
+        simd_store_vector(array, b, 1);
+        simd_store_vector(array, c, 2);
+        simd_store_partial(array, d, 3, last_vec_size);
         return SIMD_SORT_OK;
     }
 
-    if (element_count <= 40)
+    if (element_count <= SIMD_VECTOR_WIDTH * 5)
     {
-        __m256 a = _mm256_load_ps(array);
-        __m256 b = _mm256_load_ps(array+8);
-        __m256 c = _mm256_load_ps(array+16);
-        __m256 d = _mm256_load_ps(array+24);
-        __m256 e = _mm256_load_partial(array+32, last_vec_size);
+        simd_vector a = simd_load_vector(array, 0);
+        simd_vector b = simd_load_vector(array, 1);
+        simd_vector c = simd_load_vector(array, 2);
+        simd_vector d = simd_load_vector(array, 3);
+        simd_vector e = simd_load_partial(array, 4, last_vec_size);
         simd_sort_5V(&a, &b, &c, &d, &e);
-        _mm256_store_ps(array, a);
-        _mm256_store_ps(array+8, b);
-        _mm256_store_ps(array+16, c);
-        _mm256_store_ps(array+24, d);
-        _mm256_store_partial(array+32, e, last_vec_size);
+        simd_store_vector(array, a, 0);
+        simd_store_vector(array, b, 1);
+        simd_store_vector(array, c, 2);
+        simd_store_vector(array, d, 3);
+        simd_store_partial(array, e, 4, last_vec_size);
         return SIMD_SORT_OK;
     }
 
-    if (element_count <= 48)
+    if (element_count <= SIMD_VECTOR_WIDTH * 6)
     {
-        __m256 a = _mm256_load_ps(array);
-        __m256 b = _mm256_load_ps(array+8);
-        __m256 c = _mm256_load_ps(array+16);
-        __m256 d = _mm256_load_ps(array+24);
-        __m256 e = _mm256_load_ps(array+32);
-        __m256 f = _mm256_load_partial(array+40, last_vec_size);
+        simd_vector a = simd_load_vector(array, 0);
+        simd_vector b = simd_load_vector(array, 1);
+        simd_vector c = simd_load_vector(array, 2);
+        simd_vector d = simd_load_vector(array, 3);
+        simd_vector e = simd_load_vector(array, 4);
+        simd_vector f = simd_load_partial(array, 5, last_vec_size);
         simd_sort_6V(&a, &b, &c, &d, &e, &f);
-        _mm256_store_ps(array, a);
-        _mm256_store_ps(array+8, b);
-        _mm256_store_ps(array+16, c);
-        _mm256_store_ps(array+24, d);
-        _mm256_store_ps(array+32, e);
-        _mm256_store_partial(array+40, f, last_vec_size);
+        simd_store_vector(array, a, 0);
+        simd_store_vector(array, b, 1);
+        simd_store_vector(array, c, 2);
+        simd_store_vector(array, d, 3);
+        simd_store_vector(array, e, 4);
+        simd_store_partial(array, f, 5, last_vec_size);
         return SIMD_SORT_OK;
     }
 
-    if (element_count <= 56)
+    if (element_count <= SIMD_VECTOR_WIDTH * 7)
     {
-        __m256 a = _mm256_load_ps(array);
-        __m256 b = _mm256_load_ps(array+8);
-        __m256 c = _mm256_load_ps(array+16);
-        __m256 d = _mm256_load_ps(array+24);
-        __m256 e = _mm256_load_ps(array+32);
-        __m256 f = _mm256_load_ps(array+40);
-        __m256 g = _mm256_load_partial(array+48, last_vec_size);
+        simd_vector a = simd_load_vector(array, 0);
+        simd_vector b = simd_load_vector(array, 1);
+        simd_vector c = simd_load_vector(array, 2);
+        simd_vector d = simd_load_vector(array, 3);
+        simd_vector e = simd_load_vector(array, 4);
+        simd_vector f = simd_load_vector(array, 5);
+        simd_vector g = simd_load_partial(array, 6, last_vec_size);
         simd_sort_7V(&a, &b, &c, &d, &e, &f, &g);
-        _mm256_store_ps(array, a);
-        _mm256_store_ps(array+8, b);
-        _mm256_store_ps(array+16, c);
-        _mm256_store_ps(array+24, d);
-        _mm256_store_ps(array+32, e);
-        _mm256_store_ps(array+40, f);
-        _mm256_store_partial(array+48, g, last_vec_size);
+        simd_store_vector(array, a, 0);
+        simd_store_vector(array, b, 1);
+        simd_store_vector(array, c, 2);
+        simd_store_vector(array, d, 3);
+        simd_store_vector(array, e, 4);
+        simd_store_vector(array, f, 5);
+        simd_store_partial(array, g, 6, last_vec_size);
         return SIMD_SORT_OK;
     }
 
-    if (element_count <= 64)
+    if (element_count <= SIMD_VECTOR_WIDTH * 8)
     {
-        __m256 a = _mm256_load_ps(array);
-        __m256 b = _mm256_load_ps(array+8);
-        __m256 c = _mm256_load_ps(array+16);
-        __m256 d = _mm256_load_ps(array+24);
-        __m256 e = _mm256_load_ps(array+32);
-        __m256 f = _mm256_load_ps(array+40);
-        __m256 g = _mm256_load_ps(array+48);
-        __m256 h = _mm256_load_partial(array+56, last_vec_size);
+        simd_vector a = simd_load_vector(array, 0);
+        simd_vector b = simd_load_vector(array, 1);
+        simd_vector c = simd_load_vector(array, 2);
+        simd_vector d = simd_load_vector(array, 3);
+        simd_vector e = simd_load_vector(array, 4);
+        simd_vector f = simd_load_vector(array, 5);
+        simd_vector g = simd_load_vector(array, 6);
+        simd_vector h = simd_load_partial(array, 7, last_vec_size);
         simd_sort_8V(&a, &b, &c, &d, &e, &f, &g, &h);
-        _mm256_store_ps(array, a);
-        _mm256_store_ps(array+8, b);
-        _mm256_store_ps(array+16, c);
-        _mm256_store_ps(array+24, d);
-        _mm256_store_ps(array+32, e);
-        _mm256_store_ps(array+40, f);
-        _mm256_store_ps(array+48, g);
-        _mm256_store_partial(array+56, h, last_vec_size);
+        simd_store_vector(array, a, 0);
+        simd_store_vector(array, b, 1);
+        simd_store_vector(array, c, 2);
+        simd_store_vector(array, d, 3);
+        simd_store_vector(array, e, 4);
+        simd_store_vector(array, f, 5);
+        simd_store_vector(array, g, 6);
+        simd_store_partial(array, h, 7, last_vec_size);
         return SIMD_SORT_OK;
     }
 
-    if (element_count <= 72)
+    if (element_count <= SIMD_VECTOR_WIDTH * 9)
     {
-        __m256 a = _mm256_load_ps(array);
-        __m256 b = _mm256_load_ps(array+8);
-        __m256 c = _mm256_load_ps(array+16);
-        __m256 d = _mm256_load_ps(array+24);
-        __m256 e = _mm256_load_ps(array+32);
-        __m256 f = _mm256_load_ps(array+40);
-        __m256 g = _mm256_load_ps(array+48);
-        __m256 h = _mm256_load_ps(array+56);
-        __m256 i = _mm256_load_partial(array+64, last_vec_size);
+        simd_vector a = simd_load_vector(array, 0);
+        simd_vector b = simd_load_vector(array, 1);
+        simd_vector c = simd_load_vector(array, 2);
+        simd_vector d = simd_load_vector(array, 3);
+        simd_vector e = simd_load_vector(array, 4);
+        simd_vector f = simd_load_vector(array, 5);
+        simd_vector g = simd_load_vector(array, 6);
+        simd_vector h = simd_load_vector(array, 7);
+        simd_vector i = simd_load_partial(array, 8, last_vec_size);
         simd_sort_9V(&a, &b, &c, &d, &e, &f, &g, &h, &i);
-        _mm256_store_ps(array, a);
-        _mm256_store_ps(array+8, b);
-        _mm256_store_ps(array+16, c);
-        _mm256_store_ps(array+24, d);
-        _mm256_store_ps(array+32, e);
-        _mm256_store_ps(array+40, f);
-        _mm256_store_ps(array+48, g);
-        _mm256_store_ps(array+56, h);
-        _mm256_store_partial(array+64, i, last_vec_size);
+        simd_store_vector(array, a, 0);
+        simd_store_vector(array, b, 1);
+        simd_store_vector(array, c, 2);
+        simd_store_vector(array, d, 3);
+        simd_store_vector(array, e, 4);
+        simd_store_vector(array, f, 5);
+        simd_store_vector(array, g, 6);
+        simd_store_vector(array, h, 7);
+        simd_store_partial(array, i, 8, last_vec_size);
         return SIMD_SORT_OK;
     }
 
-    if (element_count <= 80)
+    if (element_count <= SIMD_VECTOR_WIDTH * 10)
     {
-        __m256 a = _mm256_load_ps(array);
-        __m256 b = _mm256_load_ps(array+8);
-        __m256 c = _mm256_load_ps(array+16);
-        __m256 d = _mm256_load_ps(array+24);
-        __m256 e = _mm256_load_ps(array+32);
-        __m256 f = _mm256_load_ps(array+40);
-        __m256 g = _mm256_load_ps(array+48);
-        __m256 h = _mm256_load_ps(array+56);
-        __m256 i = _mm256_load_ps(array+64);
-        __m256 j = _mm256_load_partial(array+72, last_vec_size);
+        simd_vector a = simd_load_vector(array, 0);
+        simd_vector b = simd_load_vector(array, 1);
+        simd_vector c = simd_load_vector(array, 2);
+        simd_vector d = simd_load_vector(array, 3);
+        simd_vector e = simd_load_vector(array, 4);
+        simd_vector f = simd_load_vector(array, 5);
+        simd_vector g = simd_load_vector(array, 6);
+        simd_vector h = simd_load_vector(array, 7);
+        simd_vector i = simd_load_vector(array, 8);
+        simd_vector j = simd_load_partial(array, 9, last_vec_size);
         simd_sort_10V(&a, &b, &c, &d, &e, &f, &g, &h, &i, &j);
-        _mm256_store_ps(array, a);
-        _mm256_store_ps(array+8, b);
-        _mm256_store_ps(array+16, c);
-        _mm256_store_ps(array+24, d);
-        _mm256_store_ps(array+32, e);
-        _mm256_store_ps(array+40, f);
-        _mm256_store_ps(array+48, g);
-        _mm256_store_ps(array+56, h);
-        _mm256_store_ps(array+64, i);
-        _mm256_store_partial(array+72, j, last_vec_size);
+        simd_store_vector(array, a, 0);
+        simd_store_vector(array, b, 1);
+        simd_store_vector(array, c, 2);
+        simd_store_vector(array, d, 3);
+        simd_store_vector(array, e, 4);
+        simd_store_vector(array, f, 5);
+        simd_store_vector(array, g, 6);
+        simd_store_vector(array, h, 7);
+        simd_store_vector(array, i, 8);
+        simd_store_partial(array, j, 9, last_vec_size);
         return SIMD_SORT_OK;
     }
 
-    if (element_count <= 88)
+    if (element_count <= SIMD_VECTOR_WIDTH * 11)
     {
-        __m256 a = _mm256_load_ps(array);
-        __m256 b = _mm256_load_ps(array+8);
-        __m256 c = _mm256_load_ps(array+16);
-        __m256 d = _mm256_load_ps(array+24);
-        __m256 e = _mm256_load_ps(array+32);
-        __m256 f = _mm256_load_ps(array+40);
-        __m256 g = _mm256_load_ps(array+48);
-        __m256 h = _mm256_load_ps(array+56);
-        __m256 i = _mm256_load_ps(array+64);
-        __m256 j = _mm256_load_ps(array+72);
-        __m256 k = _mm256_load_partial(array+80, last_vec_size);
+        simd_vector a = simd_load_vector(array, 0);
+        simd_vector b = simd_load_vector(array, 1);
+        simd_vector c = simd_load_vector(array, 2);
+        simd_vector d = simd_load_vector(array, 3);
+        simd_vector e = simd_load_vector(array, 4);
+        simd_vector f = simd_load_vector(array, 5);
+        simd_vector g = simd_load_vector(array, 6);
+        simd_vector h = simd_load_vector(array, 7);
+        simd_vector i = simd_load_vector(array, 8);
+        simd_vector j = simd_load_vector(array, 9);
+        simd_vector k = simd_load_partial(array, 10, last_vec_size);
         simd_sort_11V(&a, &b, &c, &d, &e, &f, &g, &h, &i, &j, &k);
-        _mm256_store_ps(array, a);
-        _mm256_store_ps(array+8, b);
-        _mm256_store_ps(array+16, c);
-        _mm256_store_ps(array+24, d);
-        _mm256_store_ps(array+32, e);
-        _mm256_store_ps(array+40, f);
-        _mm256_store_ps(array+48, g);
-        _mm256_store_ps(array+56, h);
-        _mm256_store_ps(array+64, i);
-        _mm256_store_ps(array+72, j);
-        _mm256_store_partial(array+80, k, last_vec_size);
+        simd_store_vector(array, a, 0);
+        simd_store_vector(array, b, 1);
+        simd_store_vector(array, c, 2);
+        simd_store_vector(array, d, 3);
+        simd_store_vector(array, e, 4);
+        simd_store_vector(array, f, 5);
+        simd_store_vector(array, g, 6);
+        simd_store_vector(array, h, 7);
+        simd_store_vector(array, i, 8);
+        simd_store_vector(array, j, 9);
+        simd_store_partial(array, k, 10, last_vec_size);
         return SIMD_SORT_OK;
     }
 
-    if (element_count <= 96)
+    if (element_count <= SIMD_VECTOR_WIDTH * 12)
     {
-        __m256 a = _mm256_load_ps(array);
-        __m256 b = _mm256_load_ps(array+8);
-        __m256 c = _mm256_load_ps(array+16);
-        __m256 d = _mm256_load_ps(array+24);
-        __m256 e = _mm256_load_ps(array+32);
-        __m256 f = _mm256_load_ps(array+40);
-        __m256 g = _mm256_load_ps(array+48);
-        __m256 h = _mm256_load_ps(array+56);
-        __m256 i = _mm256_load_ps(array+64);
-        __m256 j = _mm256_load_ps(array+72);
-        __m256 k = _mm256_load_ps(array+80);
-        __m256 l = _mm256_load_partial(array+88, last_vec_size);
+        simd_vector a = simd_load_vector(array, 0);
+        simd_vector b = simd_load_vector(array, 1);
+        simd_vector c = simd_load_vector(array, 2);
+        simd_vector d = simd_load_vector(array, 3);
+        simd_vector e = simd_load_vector(array, 4);
+        simd_vector f = simd_load_vector(array, 5);
+        simd_vector g = simd_load_vector(array, 6);
+        simd_vector h = simd_load_vector(array, 7);
+        simd_vector i = simd_load_vector(array, 8);
+        simd_vector j = simd_load_vector(array, 9);
+        simd_vector k = simd_load_vector(array, 10);
+        simd_vector l = simd_load_partial(array, 11, last_vec_size);
         simd_sort_12V(&a, &b, &c, &d, &e, &f, &g, &h, &i, &j, &k, &l);
-        _mm256_store_ps(array, a);
-        _mm256_store_ps(array+8, b);
-        _mm256_store_ps(array+16, c);
-        _mm256_store_ps(array+24, d);
-        _mm256_store_ps(array+32, e);
-        _mm256_store_ps(array+40, f);
-        _mm256_store_ps(array+48, g);
-        _mm256_store_ps(array+56, h);
-        _mm256_store_ps(array+64, i);
-        _mm256_store_ps(array+72, j);
-        _mm256_store_ps(array+80, k);
-        _mm256_store_partial(array+88, l, last_vec_size);
+        simd_store_vector(array, a, 0);
+        simd_store_vector(array, b, 1);
+        simd_store_vector(array, c, 2);
+        simd_store_vector(array, d, 3);
+        simd_store_vector(array, e, 4);
+        simd_store_vector(array, f, 5);
+        simd_store_vector(array, g, 6);
+        simd_store_vector(array, h, 7);
+        simd_store_vector(array, i, 8);
+        simd_store_vector(array, j, 9);
+        simd_store_vector(array, k, 10);
+        simd_store_partial(array, l, 11, last_vec_size);
         return SIMD_SORT_OK;
     }
 
-    if (element_count <= 104)
+    if (element_count <= SIMD_VECTOR_WIDTH * 13)
     {
-        __m256 a = _mm256_load_ps(array);
-        __m256 b = _mm256_load_ps(array+8);
-        __m256 c = _mm256_load_ps(array+16);
-        __m256 d = _mm256_load_ps(array+24);
-        __m256 e = _mm256_load_ps(array+32);
-        __m256 f = _mm256_load_ps(array+40);
-        __m256 g = _mm256_load_ps(array+48);
-        __m256 h = _mm256_load_ps(array+56);
-        __m256 i = _mm256_load_ps(array+64);
-        __m256 j = _mm256_load_ps(array+72);
-        __m256 k = _mm256_load_ps(array+80);
-        __m256 l = _mm256_load_ps(array+88);
-        __m256 m = _mm256_load_partial(array+96, last_vec_size);
+        simd_vector a = simd_load_vector(array, 0);
+        simd_vector b = simd_load_vector(array, 1);
+        simd_vector c = simd_load_vector(array, 2);
+        simd_vector d = simd_load_vector(array, 3);
+        simd_vector e = simd_load_vector(array, 4);
+        simd_vector f = simd_load_vector(array, 5);
+        simd_vector g = simd_load_vector(array, 6);
+        simd_vector h = simd_load_vector(array, 7);
+        simd_vector i = simd_load_vector(array, 8);
+        simd_vector j = simd_load_vector(array, 9);
+        simd_vector k = simd_load_vector(array, 10);
+        simd_vector l = simd_load_vector(array, 11);
+        simd_vector m = simd_load_partial(array, 12, last_vec_size);
         simd_sort_13V(&a, &b, &c, &d, &e, &f, &g, &h, &i, &j, &k, &l, &m);
-        _mm256_store_ps(array, a);
-        _mm256_store_ps(array+8, b);
-        _mm256_store_ps(array+16, c);
-        _mm256_store_ps(array+24, d);
-        _mm256_store_ps(array+32, e);
-        _mm256_store_ps(array+40, f);
-        _mm256_store_ps(array+48, g);
-        _mm256_store_ps(array+56, h);
-        _mm256_store_ps(array+64, i);
-        _mm256_store_ps(array+72, j);
-        _mm256_store_ps(array+80, k);
-        _mm256_store_ps(array+88, l);
-        _mm256_store_partial(array+96, m, last_vec_size);
+        simd_store_vector(array, a, 0);
+        simd_store_vector(array, b, 1);
+        simd_store_vector(array, c, 2);
+        simd_store_vector(array, d, 3);
+        simd_store_vector(array, e, 4);
+        simd_store_vector(array, f, 5);
+        simd_store_vector(array, g, 6);
+        simd_store_vector(array, h, 7);
+        simd_store_vector(array, i, 8);
+        simd_store_vector(array, j, 9);
+        simd_store_vector(array, k, 10);
+        simd_store_vector(array, l, 11);
+        simd_store_partial(array, m, 12, last_vec_size);
         return SIMD_SORT_OK;
     }
 
     return SIMD_SORT_TOOMANYELEMENTS;
 }
-
-#endif
 
 #endif
 #endif
