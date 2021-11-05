@@ -8,6 +8,19 @@ To use this library, do this in *one* C or C++ file:
 COMPILATION
     
 DOCUMENTATION
+
+    int simd_sort_max();
+
+        Returns the number of float at max that the library can sort
+
+    int simd_sort_float(float* array, int element_count);
+
+        Sort an aligned array of float
+        Returns an error code
+            SIMD_SORT_OK                Everything ok
+            SIMD_SORT_NOTALIGNED        The input array was not aligned properly to use SIMD load instructions
+            SIMD_SORT_TOOMANYELEMENTS   There are too many float to sort in the array, use simd_sort_max() to get the max
+            SIMD_SORT_NOTHINGTOSORT     element_count is zero, nothing to sort
 */
 
 // http://performanceguidelines.blogspot.com/2013/08/sorting-algorithms-on-gpu.html
@@ -30,7 +43,7 @@ extern "C" {
 #define SIMD_SORT_TOOMANYELEMENTS   (3)
 #define SIMD_SORT_NOTHINGTOSORT     (4)
 
-// returns SIMD_SORT_OK if suceeded otherwise another error code
+int simd_sort_max();
 int simd_sort_float(float* array, int element_count);
 
 #ifdef __cplusplus
@@ -709,6 +722,12 @@ static inline void simd_sort_16V(simd_vector* a, simd_vector* b, simd_vector* c,
 }
 
 //----------------------------------------------------------------------------------------------------------------------
+int simd_sort_max()
+{
+    return SIMD_VECTOR_WIDTH * 16;
+}
+
+//----------------------------------------------------------------------------------------------------------------------
 int simd_sort_float(float* array, int element_count)
 {
     if (!element_count)
@@ -979,6 +998,114 @@ int simd_sort_float(float* array, int element_count)
         simd_store_vector(array, k, 10);
         simd_store_vector(array, l, 11);
         simd_store_partial(array, m, 12, last_vec_size);
+        return SIMD_SORT_OK;
+    }
+
+    if (element_count <= SIMD_VECTOR_WIDTH * 14)
+    {
+        simd_vector a = simd_load_vector(array, 0);
+        simd_vector b = simd_load_vector(array, 1);
+        simd_vector c = simd_load_vector(array, 2);
+        simd_vector d = simd_load_vector(array, 3);
+        simd_vector e = simd_load_vector(array, 4);
+        simd_vector f = simd_load_vector(array, 5);
+        simd_vector g = simd_load_vector(array, 6);
+        simd_vector h = simd_load_vector(array, 7);
+        simd_vector i = simd_load_vector(array, 8);
+        simd_vector j = simd_load_vector(array, 9);
+        simd_vector k = simd_load_vector(array, 10);
+        simd_vector l = simd_load_vector(array, 11);
+        simd_vector m = simd_load_vector(array, 12);
+        simd_vector n = simd_load_partial(array, 13, last_vec_size);
+        simd_sort_14V(&a, &b, &c, &d, &e, &f, &g, &h, &i, &j, &k, &l, &m, &n);
+        simd_store_vector(array, a, 0);
+        simd_store_vector(array, b, 1);
+        simd_store_vector(array, c, 2);
+        simd_store_vector(array, d, 3);
+        simd_store_vector(array, e, 4);
+        simd_store_vector(array, f, 5);
+        simd_store_vector(array, g, 6);
+        simd_store_vector(array, h, 7);
+        simd_store_vector(array, i, 8);
+        simd_store_vector(array, j, 9);
+        simd_store_vector(array, k, 10);
+        simd_store_vector(array, l, 11);
+        simd_store_vector(array, m, 12);
+        simd_store_partial(array, n, 13, last_vec_size);
+        return SIMD_SORT_OK;
+    }
+
+    if (element_count <= SIMD_VECTOR_WIDTH * 15)
+    {
+        simd_vector a = simd_load_vector(array, 0);
+        simd_vector b = simd_load_vector(array, 1);
+        simd_vector c = simd_load_vector(array, 2);
+        simd_vector d = simd_load_vector(array, 3);
+        simd_vector e = simd_load_vector(array, 4);
+        simd_vector f = simd_load_vector(array, 5);
+        simd_vector g = simd_load_vector(array, 6);
+        simd_vector h = simd_load_vector(array, 7);
+        simd_vector i = simd_load_vector(array, 8);
+        simd_vector j = simd_load_vector(array, 9);
+        simd_vector k = simd_load_vector(array, 10);
+        simd_vector l = simd_load_vector(array, 11);
+        simd_vector m = simd_load_vector(array, 12);
+        simd_vector n = simd_load_vector(array, 13);
+        simd_vector o = simd_load_partial(array, 14, last_vec_size);
+        simd_sort_15V(&a, &b, &c, &d, &e, &f, &g, &h, &i, &j, &k, &l, &m, &n, &o);
+        simd_store_vector(array, a, 0);
+        simd_store_vector(array, b, 1);
+        simd_store_vector(array, c, 2);
+        simd_store_vector(array, d, 3);
+        simd_store_vector(array, e, 4);
+        simd_store_vector(array, f, 5);
+        simd_store_vector(array, g, 6);
+        simd_store_vector(array, h, 7);
+        simd_store_vector(array, i, 8);
+        simd_store_vector(array, j, 9);
+        simd_store_vector(array, k, 10);
+        simd_store_vector(array, l, 11);
+        simd_store_vector(array, m, 12);
+        simd_store_vector(array, n, 13);
+        simd_store_partial(array, o, 14, last_vec_size);
+        return SIMD_SORT_OK;
+    }
+
+    if (element_count <= SIMD_VECTOR_WIDTH * 16)
+    {
+        simd_vector a = simd_load_vector(array, 0);
+        simd_vector b = simd_load_vector(array, 1);
+        simd_vector c = simd_load_vector(array, 2);
+        simd_vector d = simd_load_vector(array, 3);
+        simd_vector e = simd_load_vector(array, 4);
+        simd_vector f = simd_load_vector(array, 5);
+        simd_vector g = simd_load_vector(array, 6);
+        simd_vector h = simd_load_vector(array, 7);
+        simd_vector i = simd_load_vector(array, 8);
+        simd_vector j = simd_load_vector(array, 9);
+        simd_vector k = simd_load_vector(array, 10);
+        simd_vector l = simd_load_vector(array, 11);
+        simd_vector m = simd_load_vector(array, 12);
+        simd_vector n = simd_load_vector(array, 13);
+        simd_vector o = simd_load_vector(array, 14);
+        simd_vector p = simd_load_partial(array, 15, last_vec_size);
+        simd_sort_16V(&a, &b, &c, &d, &e, &f, &g, &h, &i, &j, &k, &l, &m, &n, &o, &p);
+        simd_store_vector(array, a, 0);
+        simd_store_vector(array, b, 1);
+        simd_store_vector(array, c, 2);
+        simd_store_vector(array, d, 3);
+        simd_store_vector(array, e, 4);
+        simd_store_vector(array, f, 5);
+        simd_store_vector(array, g, 6);
+        simd_store_vector(array, h, 7);
+        simd_store_vector(array, i, 8);
+        simd_store_vector(array, j, 9);
+        simd_store_vector(array, k, 10);
+        simd_store_vector(array, l, 11);
+        simd_store_vector(array, m, 12);
+        simd_store_vector(array, n, 13);
+        simd_store_vector(array, o, 14);
+        simd_store_partial(array, p, 15, last_vec_size);
         return SIMD_SORT_OK;
     }
 

@@ -11,8 +11,8 @@
 #include <stdio.h>
 
 #define ALIGNED_VARIABLE __attribute__((aligned(SIMD_ALIGNEMENT)))
-#define NUMBER_OF_SORTS (10000000)
-#define MAX_ARRAY_SIZE (SIMD_VECTOR_WIDTH * 13)
+#define NUMBER_OF_SORTS (1000000)
+#define MAX_ARRAY_SIZE (SIMD_VECTOR_WIDTH * 16)
 
 int seed = 0x12345678;
 
@@ -109,7 +109,7 @@ int main(int argc, const char * argv[])
     printf("checking correctness ");
     for(int a=0; a<100000; ++a)
     {
-        for(int i=2; i<=MAX_ARRAY_SIZE; ++i)
+        for(int i=2; i<=simd_sort_max(); ++i)
             check_correctness(i);
         
         if (a%10000 == 0)
@@ -121,7 +121,7 @@ int main(int argc, const char * argv[])
     
     printf("\nchecking performances\n");
     
-    for(int i=1; i<=MAX_ARRAY_SIZE; ++i)
+    for(int i=1; i<=simd_sort_max(); ++i)
         profile(i);
     
     return 0;
