@@ -9,11 +9,11 @@ COMPILATION
     
 DOCUMENTATION
 
-    int simd_sort_max();
+    int simd_small_sort_max();
 
         Returns the number of float at max that the library can sort
 
-    int simd_sort_float(float* array, int element_count);
+    int simd_small_sort(float* array, int element_count);
 
         Sort an aligned array of float
         Returns an error code
@@ -41,8 +41,8 @@ extern "C" {
 #define SIMD_SORT_TOOMANYELEMENTS   (3)
 #define SIMD_SORT_NOTHINGTOSORT     (4)
 
-int simd_sort_max();
-int simd_sort_float(float* array, int element_count);
+int simd_small_sort_max();
+int simd_small_sort(float* array, int element_count);
 
 #ifdef __cplusplus
 }
@@ -720,13 +720,13 @@ static inline void simd_sort_16V(simd_vector* a, simd_vector* b, simd_vector* c,
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-int simd_sort_max()
+int simd_small_sort_max()
 {
     return SIMD_VECTOR_WIDTH * 16;
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-int simd_sort_float(float* array, int element_count)
+int simd_small_sort(float* array, int element_count)
 {
     if (!element_count)
         return SIMD_SORT_NOTHINGTOSORT;

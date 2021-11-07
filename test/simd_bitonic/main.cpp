@@ -55,7 +55,7 @@ void profile(int array_size)
         
         start_time = stm_now();
         
-        simd_sort_float(array, array_size);
+        simd_small_sort(array, array_size);
         
         diff += stm_diff(stm_now(), start_time);
         
@@ -81,7 +81,7 @@ void check_correctness(int array_size)
     }
 
     std::sort(vector.begin(), vector.end());
-    simd_sort_float(array, array_size);
+    simd_small_sort(array, array_size);
 
     for(int j=0; j<array_size; ++j)
     {
@@ -91,9 +91,9 @@ void check_correctness(int array_size)
 
 void check_error_code()
 {
-    assert(simd_sort_float(nullptr, 65890) == SIMD_SORT_TOOMANYELEMENTS);
-    assert(simd_sort_float(nullptr, 0) == SIMD_SORT_NOTHINGTOSORT);
-    assert(simd_sort_float((float*) 0x123, 12) == SIMD_SORT_NOTALIGNED);
+    assert(simd_small_sort(nullptr, 65890) == SIMD_SORT_TOOMANYELEMENTS);
+    assert(simd_small_sort(nullptr, 0) == SIMD_SORT_NOTHINGTOSORT);
+    assert(simd_small_sort((float*) 0x123, 12) == SIMD_SORT_NOTALIGNED);
 }
 
 int main(int argc, const char * argv[])
@@ -109,7 +109,7 @@ int main(int argc, const char * argv[])
     printf("checking correctness ");
     for(int a=0; a<100000; ++a)
     {
-        for(int i=2; i<=simd_sort_max(); ++i)
+        for(int i=2; i<=simd_small_sort_max(); ++i)
             check_correctness(i);
         
         if (a%10000 == 0)
@@ -121,7 +121,7 @@ int main(int argc, const char * argv[])
     
     printf("\nchecking performances\n");
     
-    for(int i=1; i<=simd_sort_max(); ++i)
+    for(int i=1; i<=simd_small_sort_max(); ++i)
         profile(i);
     
     return 0;
