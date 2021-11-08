@@ -758,9 +758,108 @@ static inline void simd_sort_18V(simd_vector* a, simd_vector* b, simd_vector* c,
 }
 
 //----------------------------------------------------------------------------------------------------------------------
+static inline void simd_sort_19V(simd_vector* a, simd_vector* b, simd_vector* c, simd_vector* d, simd_vector* e, simd_vector* f, simd_vector* g, simd_vector* h,
+                                 simd_vector* i, simd_vector* j, simd_vector* k, simd_vector* l, simd_vector *m, simd_vector* n, simd_vector* o, simd_vector* p,
+                                 simd_vector* q, simd_vector* r, simd_vector* s)
+{
+    simd_sort_16V(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p);
+    simd_sort_3V(q, r, s);
+    simd_permute_minmax_2V(p, q);
+    simd_permute_minmax_2V(o, r);
+    simd_permute_minmax_2V(n, s);
+    simd_aftermerge_16V(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p);
+    simd_aftermerge_3V(q, r, s);
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+static inline void simd_sort_20V(simd_vector* a, simd_vector* b, simd_vector* c, simd_vector* d, simd_vector* e, simd_vector* f, simd_vector* g, simd_vector* h,
+                                 simd_vector* i, simd_vector* j, simd_vector* k, simd_vector* l, simd_vector *m, simd_vector* n, simd_vector* o, simd_vector* p,
+                                 simd_vector* q, simd_vector* r, simd_vector* s, simd_vector* t)
+{
+    simd_sort_16V(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p);
+    simd_sort_4V(q, r, s, t);
+    simd_permute_minmax_2V(p, q);
+    simd_permute_minmax_2V(o, r);
+    simd_permute_minmax_2V(n, s);
+    simd_permute_minmax_2V(m, t);
+    simd_aftermerge_16V(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p);
+    simd_aftermerge_4V(q, r, s, t);
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+static inline void simd_sort_21V(simd_vector* a, simd_vector* b, simd_vector* c, simd_vector* d, simd_vector* e, simd_vector* f, simd_vector* g, simd_vector* h,
+                                 simd_vector* i, simd_vector* j, simd_vector* k, simd_vector* l, simd_vector *m, simd_vector* n, simd_vector* o, simd_vector* p,
+                                 simd_vector* q, simd_vector* r, simd_vector* s, simd_vector* t, simd_vector* u)
+{
+    simd_sort_16V(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p);
+    simd_sort_5V(q, r, s, t, u);
+    simd_permute_minmax_2V(p, q);
+    simd_permute_minmax_2V(o, r);
+    simd_permute_minmax_2V(n, s);
+    simd_permute_minmax_2V(m, t);
+    simd_permute_minmax_2V(l, u);
+    simd_aftermerge_16V(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p);
+    simd_aftermerge_5V(q, r, s, t, u);
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+static inline void simd_sort_22V(simd_vector* a, simd_vector* b, simd_vector* c, simd_vector* d, simd_vector* e, simd_vector* f, simd_vector* g, simd_vector* h,
+                                 simd_vector* i, simd_vector* j, simd_vector* k, simd_vector* l, simd_vector *m, simd_vector* n, simd_vector* o, simd_vector* p,
+                                 simd_vector* q, simd_vector* r, simd_vector* s, simd_vector* t, simd_vector* u, simd_vector* v)
+{
+    simd_sort_16V(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p);
+    simd_sort_6V(q, r, s, t, u, v);
+    simd_permute_minmax_2V(p, q);
+    simd_permute_minmax_2V(o, r);
+    simd_permute_minmax_2V(n, s);
+    simd_permute_minmax_2V(m, t);
+    simd_permute_minmax_2V(l, u);
+    simd_permute_minmax_2V(k, v);
+    simd_aftermerge_16V(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p);
+    simd_aftermerge_6V(q, r, s, t, u, v);
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+static inline void simd_sort_23V(simd_vector* a, simd_vector* b, simd_vector* c, simd_vector* d, simd_vector* e, simd_vector* f, simd_vector* g, simd_vector* h,
+                                 simd_vector* i, simd_vector* j, simd_vector* k, simd_vector* l, simd_vector *m, simd_vector* n, simd_vector* o, simd_vector* p,
+                                 simd_vector* q, simd_vector* r, simd_vector* s, simd_vector* t, simd_vector* u, simd_vector* v, simd_vector* x)
+{
+    simd_sort_16V(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p);
+    simd_sort_7V(q, r, s, t, u, v, x);
+    simd_permute_minmax_2V(p, q);
+    simd_permute_minmax_2V(o, r);
+    simd_permute_minmax_2V(n, s);
+    simd_permute_minmax_2V(m, t);
+    simd_permute_minmax_2V(l, u);
+    simd_permute_minmax_2V(k, v);
+    simd_permute_minmax_2V(j, x);
+    simd_aftermerge_16V(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p);
+    simd_aftermerge_7V(q, r, s, t, u, v, x);
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+static inline void simd_sort_24V(simd_vector* a, simd_vector* b, simd_vector* c, simd_vector* d, simd_vector* e, simd_vector* f, simd_vector* g, simd_vector* h,
+                                 simd_vector* i, simd_vector* j, simd_vector* k, simd_vector* l, simd_vector *m, simd_vector* n, simd_vector* o, simd_vector* p,
+                                 simd_vector* q, simd_vector* r, simd_vector* s, simd_vector* t, simd_vector* u, simd_vector* v, simd_vector* x, simd_vector* y)
+{
+    simd_sort_16V(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p);
+    simd_sort_8V(q, r, s, t, u, v, x, y);
+    simd_permute_minmax_2V(p, q);
+    simd_permute_minmax_2V(o, r);
+    simd_permute_minmax_2V(n, s);
+    simd_permute_minmax_2V(m, t);
+    simd_permute_minmax_2V(l, u);
+    simd_permute_minmax_2V(k, v);
+    simd_permute_minmax_2V(j, x);
+    simd_permute_minmax_2V(i, y);
+    simd_aftermerge_16V(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p);
+    simd_aftermerge_8V(q, r, s, t, u, v, x, y);
+}
+
+//----------------------------------------------------------------------------------------------------------------------
 int simd_small_sort_max()
 {
-    return SIMD_VECTOR_WIDTH * 18;
+    return SIMD_VECTOR_WIDTH * 24;
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -851,6 +950,30 @@ void simd_small_sort(float* array, int element_count)
     else if (element_count <= SIMD_VECTOR_WIDTH * 18)
     {
         simd_sort_18V(data, data+1, data+2, data+3, data+4, data+5, data+6, data+7, data+8, data+9, data+10, data+11, data+12, data+13, data+14, data+15, data+16, data+17);
+    }
+    else if (element_count <= SIMD_VECTOR_WIDTH * 19)
+    {
+        simd_sort_19V(data, data+1, data+2, data+3, data+4, data+5, data+6, data+7, data+8, data+9, data+10, data+11, data+12, data+13, data+14, data+15, data+16, data+17, data+18);
+    }
+    else if (element_count <= SIMD_VECTOR_WIDTH * 20)
+    {
+        simd_sort_20V(data, data+1, data+2, data+3, data+4, data+5, data+6, data+7, data+8, data+9, data+10, data+11, data+12, data+13, data+14, data+15, data+16, data+17, data+18, data+19);
+    }
+    else if (element_count <= SIMD_VECTOR_WIDTH * 21)
+    {
+        simd_sort_21V(data, data+1, data+2, data+3, data+4, data+5, data+6, data+7, data+8, data+9, data+10, data+11, data+12, data+13, data+14, data+15, data+16, data+17, data+18, data+19, data+20);
+    }
+    else if (element_count <= SIMD_VECTOR_WIDTH * 22)
+    {
+        simd_sort_22V(data, data+1, data+2, data+3, data+4, data+5, data+6, data+7, data+8, data+9, data+10, data+11, data+12, data+13, data+14, data+15, data+16, data+17, data+18, data+19, data+20, data+21);
+    }
+    else if (element_count <= SIMD_VECTOR_WIDTH * 23)
+    {
+        simd_sort_23V(data, data+1, data+2, data+3, data+4, data+5, data+6, data+7, data+8, data+9, data+10, data+11, data+12, data+13, data+14, data+15, data+16, data+17, data+18, data+19, data+20, data+21, data+22);
+    }
+    else if (element_count <= SIMD_VECTOR_WIDTH * 24)
+    {
+        simd_sort_24V(data, data+1, data+2, data+3, data+4, data+5, data+6, data+7, data+8, data+9, data+10, data+11, data+12, data+13, data+14, data+15, data+16, data+17, data+18, data+19, data+20, data+21, data+22, data+23);
     }
 
     for(int i=0; i<full_vec_count; ++i)
