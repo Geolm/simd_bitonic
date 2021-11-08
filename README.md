@@ -9,6 +9,9 @@ Contrary to the algorithms showed in the paper, this library works with AVX 1.0 
 # Library
 One C99 header file, simd_bitonic.h. C99 probably needed. Tested with clang -mavx -o3.
 
+* simd_small_sort(), bitonic sort small arrays (<128/64 floats) 
+* simd_merge_sort(), tiled merge sort : merge sort until the number of element can be sorted using the simd_small_sort
+
 # Results
 
 Profile was done by sorting 10,000,000 times an array from random elements. 
@@ -40,7 +43,3 @@ This chart is more all over the place, gain are still impressive though.
 * Sorting values for image compression, usually 8x8 or 4x4 pixels
 * Sorting values for kdtree building, for example each leaf of kdtree could have 16 points and when we need to split the node we sort the points using one axis
 * Sorting values that are already in SIMD registers
-
-# It's not in this library
-* Sorting integer. Logic is still the same, you can look at the code and use integer intrinsic, should work.
-* Sorting any size array.
