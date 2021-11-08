@@ -1158,11 +1158,22 @@ void merge_sort(float* array, int left, int right)
 {
     if (left < right)
     {
-        int middle = left + (right - left) / 2;
-        int left_element_count = middle - left + 1;
-        int right_element_count = right - middle;
+        int middle, left_element_count, right_element_count;
+        int element_count = (right - left + 1);
 
         // if both arrays are small enough, we use the simd bitonic sort
+        if (element_count <= (2 * simd_small_sort_max()) && element_count > simd_small_sort_max())
+        {
+            middle = left + simd_small_sort_max() - 1;
+        }
+        else
+        {
+            middle = left + (right - left) / 2;    
+        }
+
+        left_element_count = middle - left + 1;
+        right_element_count = right - middle;
+        
         if (left_element_count <= simd_small_sort_max() && 
             right_element_count <= simd_small_sort_max())
         {

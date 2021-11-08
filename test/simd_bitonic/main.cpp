@@ -180,7 +180,7 @@ int main(int argc, const char * argv[])
     
     printf("\nchecking merge sort ");
     
-    int size = 1;
+    int size = 3;
     for(int a=0; a<21; ++a)
     {
         check_merge_sort(size);
@@ -191,11 +191,11 @@ int main(int argc, const char * argv[])
 
     printf("\nchecking merge bitonic sort performances\n");
 
-    size = 1;
-    for(int i=0; i<20; ++i)
+    size = 3;
+    for(int i=0; i<12; ++i)
     {
         profile_merge_sort(size);
-        size *= 2;
+        size *= 3;
     }
     
     seed = 0x12345678;
