@@ -15,12 +15,16 @@ DOCUMENTATION
 
     int simd_small_sort(float* array, int element_count);
 
-        Sort an aligned array of float
+        Sort a small array of float
         Returns an error code
             SIMD_SORT_OK                Everything ok
-            SIMD_SORT_NOTALIGNED        The input array was not aligned properly to use SIMD load instructions
             SIMD_SORT_TOOMANYELEMENTS   There are too many float to sort in the array, use simd_sort_max() to get the max
-            SIMD_SORT_NOTHINGTOSORT     element_count is zero, nothing to sort
+
+
+    void simd_merge_sort(float* array, int element_count);
+
+        Sort an array of float using a mix merge sort and bitonic sort
+
 */
 
 
@@ -37,12 +41,12 @@ extern "C" {
 #endif
 
 #define SIMD_SORT_OK                (1)
-#define SIMD_SORT_NOTALIGNED        (2)
-#define SIMD_SORT_TOOMANYELEMENTS   (3)
-#define SIMD_SORT_NOTHINGTOSORT     (4)
+#define SIMD_SORT_TOOMANYELEMENTS   (2)
+
 
 int simd_small_sort_max();
 int simd_small_sort(float* array, int element_count);
+void simd_merge_sort(float* array, int element_count);
 
 #ifdef __cplusplus
 }
@@ -56,6 +60,8 @@ int simd_small_sort(float* array, int element_count);
 #undef __SIMD_BITONIC_IMPLEMENTATION__
 
 #include <assert.h>
+#include <string.h>
+#include <stdlib.h>
 
 // positive infinity float hexadecimal value
 #define FLOAT_PINF (0x7F800000) 
@@ -69,10 +75,8 @@ int simd_small_sort(float* array, int element_count);
 
 #define ALIGN_STRUCT(x) __attribute__((aligned(x)))
 #define SIMD_VECTOR_WIDTH (4)
-#define SIMD_ALIGNEMENT (16)
 
 typedef float32x4_t simd_vector;
-
 
 //----------------------------------------------------------------------------------------------------------------------
 static inline float32x4_t vblendq_f32(float32x4_t _a, float32x4_t _b, const char imm8)
@@ -212,10 +216,8 @@ static inline void simd_store_vector(float* array, float32x4_t a, int index)
 #include <stdint.h>
 
 #define SIMD_VECTOR_WIDTH (8)
-#define SIMD_ALIGNEMENT (32)
 
 typedef __m256 simd_vector;
-
 
 //----------------------------------------------------------------------------------------------------------------------
 static inline simd_vector _mm256_swap(__m256 input)
@@ -329,7 +331,7 @@ static inline __m256i loadstore_mask(int element_count)
 static inline __m256 simd_load_partial(const float* array, int index, int element_count)
 {
     if (element_count == SIMD_VECTOR_WIDTH)
-        return _mm256_load_ps(array + index * SIMD_VECTOR_WIDTH);
+        return _mm256_loadu_ps(array + index * SIMD_VECTOR_WIDTH);
     
     __m256 inf_mask = _mm256_cvtepi32_ps(_mm256_set_epi32(FLOAT_PINF,
                                        (element_count>6) ? 0 : FLOAT_PINF,
@@ -349,7 +351,7 @@ static inline void simd_store_partial(float* array, __m256 a, int index, int ele
 {
     if (element_count == SIMD_VECTOR_WIDTH)
     {
-        _mm256_store_ps(array + index * SIMD_VECTOR_WIDTH, a);
+        _mm256_storeu_ps(array + index * SIMD_VECTOR_WIDTH, a);
     }
     else
     {
@@ -360,15 +362,14 @@ static inline void simd_store_partial(float* array, __m256 a, int index, int ele
 //----------------------------------------------------------------------------------------------------------------------
 static inline __m256 simd_load_vector(const float* array, int index)
 {
-    return _mm256_load_ps(array + SIMD_VECTOR_WIDTH * index);
+    return _mm256_loadu_ps(array + SIMD_VECTOR_WIDTH * index);
 }
 
 //----------------------------------------------------------------------------------------------------------------------
 static inline void simd_store_vector(float* array, __m256 a, int index)
 {
-    _mm256_store_ps(array + SIMD_VECTOR_WIDTH * index, a);
+    _mm256_storeu_ps(array + SIMD_VECTOR_WIDTH * index, a);
 }
-
 
 //----------------------------------------------------------------------------------------------------------------------
 #endif // AVX
@@ -728,15 +729,8 @@ int simd_small_sort_max()
 //----------------------------------------------------------------------------------------------------------------------
 int simd_small_sort(float* array, int element_count)
 {
-    if (!element_count)
-        return SIMD_SORT_NOTHINGTOSORT;
-
-    if (element_count == 1)
-        return SIMD_SORT_OK;
-
-    const intptr_t address = (intptr_t) array;
-    if (address%SIMD_ALIGNEMENT != 0)
-        return SIMD_SORT_NOTALIGNED;
+    if (element_count <= 1)
+        return SIMD_SORT_OK;   
 
     const int last_vec_size = (element_count%SIMD_VECTOR_WIDTH) == 0 ? SIMD_VECTOR_WIDTH : (element_count%SIMD_VECTOR_WIDTH);
     if (element_count <= SIMD_VECTOR_WIDTH)
@@ -1106,8 +1100,95 @@ int simd_small_sort(float* array, int element_count)
         simd_store_partial(array, p, 15, last_vec_size);
         return SIMD_SORT_OK;
     }
-
     return SIMD_SORT_TOOMANYELEMENTS;
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+void merge_arrays(float* array, int left, int middle, int right)
+{
+    int left_element_count = middle - left + 1;
+    int right_element_count = right - middle;
+
+    float* left_array = (float*) malloc(sizeof(float) * left_element_count);
+    float* right_array = (float*) malloc(sizeof(float) * right_element_count);
+
+    memcpy(left_array, array + left, sizeof(float) * left_element_count);
+    memcpy(right_array, array + middle + 1, sizeof(float) * right_element_count);
+
+    int left_index, right_index, output_index;
+    left_index = 0;
+    right_index = 0;
+    output_index = left;
+
+    while (left_index < left_element_count && right_index < right_element_count) 
+    {
+        if (left_array[left_index] < right_array[right_index]) 
+        {
+            array[output_index] = left_array[left_index];
+            left_index++;
+        } 
+        else 
+        {
+            array[output_index] = right_array[right_index];
+            right_index++;
+        }
+        output_index++;
+    }
+
+    while (left_index < left_element_count) 
+    {
+        array[output_index] = left_array[left_index];
+        left_index++;
+        output_index++;
+    }
+
+    while (right_index < right_element_count) 
+    {
+        array[output_index] = right_array[right_index];
+        right_index++;
+        output_index++;
+    }
+
+    free(left_array);
+    free(right_array);
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+void merge_sort(float* array, int left, int right) 
+{
+    if (left < right)
+    {
+        int middle = left + (right - left) / 2;
+        int left_element_count = middle - left + 1;
+        int right_element_count = right - middle;
+
+        // if both arrays are small enough, we use the simd bitonic sort
+        if (left_element_count <= simd_small_sort_max() && 
+            right_element_count <= simd_small_sort_max())
+        {
+            simd_small_sort(array + left, left_element_count);
+            simd_small_sort(array + middle + 1, right_element_count);
+        }
+        else
+        {
+            merge_sort(array, left, middle);
+            merge_sort(array, middle + 1, right);
+        }
+        merge_arrays(array, left, middle, right);
+    }
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+void simd_merge_sort(float* array, int element_count)
+{
+    if (element_count <= simd_small_sort_max())
+    {
+        simd_small_sort(array, element_count);
+    }
+    else
+    {
+        merge_sort(array, 0, element_count - 1);
+    }
 }
 
 #endif

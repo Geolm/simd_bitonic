@@ -10,15 +10,14 @@
 #include <algorithm>
 #include <stdio.h>
 
-#define ALIGNED_VARIABLE __attribute__((aligned(SIMD_ALIGNEMENT)))
 #define NUMBER_OF_SORTS (1000000)
 #define MAX_ARRAY_SIZE (SIMD_VECTOR_WIDTH * 16)
 
 int seed = 0x12345678;
 
-void profile(int array_size)
+void profile_small(int array_size)
 {
-    ALIGNED_VARIABLE float array[MAX_ARRAY_SIZE];
+    float array[MAX_ARRAY_SIZE];
     
     std::vector<float> vector;
     vector.resize(array_size);
@@ -69,7 +68,7 @@ void profile(int array_size)
 
 void check_correctness(int array_size)
 {
-    ALIGNED_VARIABLE float array[MAX_ARRAY_SIZE];
+    float array[MAX_ARRAY_SIZE];
     
     std::vector<float> vector;
     vector.resize(array_size);
@@ -92,8 +91,71 @@ void check_correctness(int array_size)
 void check_error_code()
 {
     assert(simd_small_sort(nullptr, 65890) == SIMD_SORT_TOOMANYELEMENTS);
-    assert(simd_small_sort(nullptr, 0) == SIMD_SORT_NOTHINGTOSORT);
-    assert(simd_small_sort((float*) 0x123, 12) == SIMD_SORT_NOTALIGNED);
+}
+
+void check_merge_sort(int array_size)
+{
+    float* array = (float*) malloc(sizeof(float) * array_size);
+    
+    std::vector<float> vector;
+    vector.resize(array_size);
+    
+    for(int j=0; j<array_size; ++j)
+    {
+        vector[j] = (iq_random_float(&seed) - 0.5f) * 10000.f;
+        array[j] = vector[j];
+    }
+
+    std::sort(vector.begin(), vector.end());
+    
+    simd_merge_sort(array, array_size);
+
+    for(int j=0; j<array_size; ++j)
+    {
+        assert(vector[j] == array[j]);
+    }
+
+    
+    free(array);
+}
+
+void profile_merge_sort(int array_size)
+{
+    float* array = (float*) malloc(sizeof(float) * array_size);
+    
+    std::vector<float> vector;
+    vector.resize(array_size);
+
+    uint64_t stl_diff = 0;
+    uint64_t simd_diff = 0;
+
+    for(int i=0; i<100; ++i)
+    {
+        for(int j=0; j<array_size; ++j)
+        {
+            vector[j] = (iq_random_float(&seed) - 0.5f) * 10000.f;
+            array[j] = vector[j];
+        }
+
+        uint64_t start_time = stm_now();
+        
+        std::sort(vector.begin(), vector.end());
+
+        stl_diff += stm_diff(stm_now(), start_time);
+
+        start_time = stm_now();
+
+        simd_merge_sort(array, array_size);
+
+        simd_diff += stm_diff(stm_now(), start_time);
+    }
+
+    float stl_duration = (float)stm_sec(stl_diff);
+    float simd_duration = (float)stm_sec(simd_diff);
+
+    printf("%f\n", stl_duration/simd_duration);
+    
+    free(array);
 }
 
 int main(int argc, const char * argv[])
@@ -106,23 +168,42 @@ int main(int argc, const char * argv[])
     
     check_error_code();
 
-    printf("checking correctness ");
-    for(int a=0; a<100000; ++a)
+    printf("checking small sort ");
+    for(int a=0; a<1000; ++a)
     {
         for(int i=2; i<=simd_small_sort_max(); ++i)
             check_correctness(i);
         
-        if (a%10000 == 0)
+        if (a%100 == 0)
             printf(".");
     }
     
+    printf("\nchecking merge sort ");
+    
+    int size = 1;
+    for(int a=0; a<21; ++a)
+    {
+        check_merge_sort(size);
+        
+        size *= 2;
+        printf(".");
+    }
+
+    printf("\nchecking merge bitonic sort performances\n");
+
+    size = 1;
+    for(int i=0; i<20; ++i)
+    {
+        profile_merge_sort(size);
+        size *= 2;
+    }
     
     seed = 0x12345678;
     
-    printf("\nchecking performances\n");
+    printf("\nchecking small sort performances\n");
     
     for(int i=1; i<=simd_small_sort_max(); ++i)
-        profile(i);
+        profile_small(i);
     
     return 0;
 }
