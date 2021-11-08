@@ -9,7 +9,8 @@ Contrary to the algorithms showed in the paper, this library works with AVX 1.0 
 # Library
 One C99 header file, simd_bitonic.h. C99 probably needed. Tested with clang -mavx -o3.
 
-* simd_small_sort(), bitonic sort small arrays (<128/64 floats) 
+* simd_small_sort_max(), returns the maximum number of float at max that be can sorted with the small sort function
+* simd_small_sort(), bitonic sort small arrays
 * simd_merge_sort(), tiled merge sort : merge sort until the number of element can be sorted using the simd_small_sort
 
 # Results
@@ -35,9 +36,8 @@ This chart is more all over the place, gain are still impressive though.
 * There are less access to memory as most of the work is done inside SIMD registers
 
 # Drawbacks
-* Only for small arrays, currently only size <= 128/64 (AVX/NEON) floats are supported
+* Only for small arrays, merge-sort is not as efficient
 * Sort only "pure" floats, cannot sort an array of struct {float a; int b;}  for example
-* Works only aligned (16 or 32 bytes depending on the platform) array
 
 # What are the typical use-case?
 * Sorting values for image compression, usually 8x8 or 4x4 pixels
