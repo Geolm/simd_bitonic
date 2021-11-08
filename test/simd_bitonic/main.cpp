@@ -11,7 +11,7 @@
 #include <stdio.h>
 
 #define NUMBER_OF_SORTS (1000000)
-#define MAX_ARRAY_SIZE (SIMD_VECTOR_WIDTH * 16)
+#define MAX_ARRAY_SIZE (SIMD_VECTOR_WIDTH * 32)
 
 int seed = 0x12345678;
 
@@ -88,11 +88,6 @@ void check_correctness(int array_size)
     }
 }
 
-void check_error_code()
-{
-    assert(simd_small_sort(nullptr, 65890) == SIMD_SORT_TOOMANYELEMENTS);
-}
-
 void check_merge_sort(int array_size)
 {
     float* array = (float*) malloc(sizeof(float) * array_size);
@@ -163,10 +158,6 @@ int main(int argc, const char * argv[])
     stm_setup();
     
     seed = (int)stm_now();
-    
-    printf("checking error codes\n");
-    
-    check_error_code();
 
     printf("checking small sort ");
     for(int a=0; a<1000; ++a)

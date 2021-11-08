@@ -45,7 +45,7 @@ extern "C" {
 
 
 int simd_small_sort_max();
-int simd_small_sort(float* array, int element_count);
+void simd_small_sort(float* array, int element_count);
 void simd_merge_sort(float* array, int element_count);
 
 #ifdef __cplusplus
@@ -489,6 +489,22 @@ static inline void simd_aftermerge_8V(simd_vector *a, simd_vector *b, simd_vecto
 }
 
 //----------------------------------------------------------------------------------------------------------------------
+static inline void simd_aftermerge_16V(simd_vector *a, simd_vector *b, simd_vector *c, simd_vector *d, simd_vector* e, simd_vector* f, simd_vector *g, simd_vector* h,
+                                       simd_vector *i, simd_vector *j, simd_vector *k, simd_vector *l, simd_vector *m, simd_vector *n, simd_vector *o, simd_vector *p)
+{
+    simd_minmax_2V(a, i);
+    simd_minmax_2V(b, j);
+    simd_minmax_2V(c, k);
+    simd_minmax_2V(d, l);
+    simd_minmax_2V(e, m);
+    simd_minmax_2V(f, n);
+    simd_minmax_2V(g, o);
+    simd_minmax_2V(h, p);
+    simd_aftermerge_8V(a, b, c, d, e, f, g, h);
+    simd_aftermerge_8V(i, j, k, l, m, n, o, p);
+}
+
+//----------------------------------------------------------------------------------------------------------------------
 static inline void simd_sort_2V(simd_vector* a, simd_vector* b)
 {
     *a = simd_sort_1V(*a);
@@ -721,386 +737,131 @@ static inline void simd_sort_16V(simd_vector* a, simd_vector* b, simd_vector* c,
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-int simd_small_sort_max()
+static inline void simd_sort_17V(simd_vector* a, simd_vector* b, simd_vector* c, simd_vector* d, simd_vector* e, simd_vector* f, simd_vector* g, simd_vector* h,
+                                 simd_vector* i, simd_vector* j, simd_vector* k, simd_vector* l, simd_vector *m, simd_vector* n, simd_vector* o, simd_vector* p,
+                                 simd_vector* q)
 {
-    return SIMD_VECTOR_WIDTH * 16;
+    simd_sort_16V(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p);
+    *q = simd_sort_1V(*q);
+    simd_permute_minmax_2V(p, q);
+    simd_aftermerge_16V(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p);
+    *q = simd_aftermerge_1V(*q);
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-int simd_small_sort(float* array, int element_count)
+static inline void simd_sort_18V(simd_vector* a, simd_vector* b, simd_vector* c, simd_vector* d, simd_vector* e, simd_vector* f, simd_vector* g, simd_vector* h,
+                                 simd_vector* i, simd_vector* j, simd_vector* k, simd_vector* l, simd_vector *m, simd_vector* n, simd_vector* o, simd_vector* p,
+                                 simd_vector* q, simd_vector* r)
+{
+    simd_sort_16V(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p);
+    simd_sort_2V(q, r);
+    simd_permute_minmax_2V(p, q);
+    simd_permute_minmax_2V(o, r);
+    simd_aftermerge_16V(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p);
+    simd_aftermerge_2V(q, r);
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+int simd_small_sort_max()
+{
+    return SIMD_VECTOR_WIDTH * 18;
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+void simd_small_sort(float* array, int element_count)
 {
     if (element_count <= 1)
-        return SIMD_SORT_OK;   
-
-    const int last_vec_size = (element_count%SIMD_VECTOR_WIDTH) == 0 ? SIMD_VECTOR_WIDTH : (element_count%SIMD_VECTOR_WIDTH);
+        return;
+    
+    const int full_vec_count = element_count / SIMD_VECTOR_WIDTH;
+    const int last_vec_size = element_count - (full_vec_count * SIMD_VECTOR_WIDTH);
+    
+    simd_vector data[32];
+    
+    for(int i=0; i<full_vec_count; ++i)
+        data[i] = simd_load_vector(array, i);
+    
+    if (last_vec_size)
+        data[full_vec_count] = simd_load_partial(array, full_vec_count, last_vec_size);
+    
     if (element_count <= SIMD_VECTOR_WIDTH)
     {
-        simd_vector a = simd_load_partial(array, 0, last_vec_size);
-        a = simd_sort_1V(a);
-        simd_store_partial(array, a, 0, last_vec_size);
-        return SIMD_SORT_OK;
+        data[0] = simd_sort_1V(data[0]);
+    }
+    else if (element_count <= SIMD_VECTOR_WIDTH * 2)
+    {
+        simd_sort_2V(data, data+1);
+    }
+    else if (element_count <= SIMD_VECTOR_WIDTH * 3)
+    {
+        simd_sort_3V(data, data+1, data+2);
+    }
+    else if (element_count <= SIMD_VECTOR_WIDTH * 4)
+    {
+        simd_sort_4V(data, data+1, data+2, data+3);
+    }
+    else if (element_count <= SIMD_VECTOR_WIDTH * 5)
+    {
+        simd_sort_5V(data, data+1, data+2, data+3, data+4);
+    }
+    else if (element_count <= SIMD_VECTOR_WIDTH * 6)
+    {
+        simd_sort_6V(data, data+1, data+2, data+3, data+4, data+5);
+    }
+    else if (element_count <= SIMD_VECTOR_WIDTH * 7)
+    {
+        simd_sort_7V(data, data+1, data+2, data+3, data+4, data+5, data+6);
+    }
+    else if (element_count <= SIMD_VECTOR_WIDTH * 8)
+    {
+        simd_sort_8V(data, data+1, data+2, data+3, data+4, data+5, data+6, data+7);
+    }
+    else if (element_count <= SIMD_VECTOR_WIDTH * 9)
+    {
+        simd_sort_9V(data, data+1, data+2, data+3, data+4, data+5, data+6, data+7, data+8); 
+    }
+    else if (element_count <= SIMD_VECTOR_WIDTH * 10)
+    {
+        simd_sort_10V(data, data+1, data+2, data+3, data+4, data+5, data+6, data+7, data+8, data+9);
+    }
+    else if (element_count <= SIMD_VECTOR_WIDTH * 11)
+    {
+        simd_sort_11V(data, data+1, data+2, data+3, data+4, data+5, data+6, data+7, data+8, data+9, data+10);
+    }
+    else if (element_count <= SIMD_VECTOR_WIDTH * 12)
+    {
+        simd_sort_12V(data, data+1, data+2, data+3, data+4, data+5, data+6, data+7, data+8, data+9, data+10, data+11);
+    }
+    else if (element_count <= SIMD_VECTOR_WIDTH * 13)
+    {
+        simd_sort_13V(data, data+1, data+2, data+3, data+4, data+5, data+6, data+7, data+8, data+9, data+10, data+11, data+12);
+    }
+    else if (element_count <= SIMD_VECTOR_WIDTH * 14)
+    {
+        simd_sort_14V(data, data+1, data+2, data+3, data+4, data+5, data+6, data+7, data+8, data+9, data+10, data+11, data+12, data+13);
+    }
+    else if (element_count <= SIMD_VECTOR_WIDTH * 15)
+    {
+        simd_sort_15V(data, data+1, data+2, data+3, data+4, data+5, data+6, data+7, data+8, data+9, data+10, data+11, data+12, data+13, data+14);
+    }
+    else if (element_count <= SIMD_VECTOR_WIDTH * 16)
+    {
+        simd_sort_16V(data, data+1, data+2, data+3, data+4, data+5, data+6, data+7, data+8, data+9, data+10, data+11, data+12, data+13, data+14, data+15);
+    }
+    else if (element_count <= SIMD_VECTOR_WIDTH * 17)
+    {
+        simd_sort_17V(data, data+1, data+2, data+3, data+4, data+5, data+6, data+7, data+8, data+9, data+10, data+11, data+12, data+13, data+14, data+15, data+16);
+    }
+    else if (element_count <= SIMD_VECTOR_WIDTH * 18)
+    {
+        simd_sort_18V(data, data+1, data+2, data+3, data+4, data+5, data+6, data+7, data+8, data+9, data+10, data+11, data+12, data+13, data+14, data+15, data+16, data+17);
     }
 
-    if (element_count <= SIMD_VECTOR_WIDTH * 2)
-    {
-        simd_vector a = simd_load_vector(array, 0);
-        simd_vector b = simd_load_partial(array, 1, last_vec_size);
-        simd_sort_2V(&a, &b);
-        simd_store_vector(array, a, 0);
-        simd_store_partial(array, b, 1, last_vec_size);
-        return SIMD_SORT_OK;
-    }
-    
-    if (element_count <= SIMD_VECTOR_WIDTH * 3)
-    {
-        simd_vector a = simd_load_vector(array, 0);
-        simd_vector b = simd_load_vector(array, 1);
-        simd_vector c = simd_load_partial(array, 2, last_vec_size);
-        simd_sort_3V(&a, &b, &c);
-        simd_store_vector(array, a, 0);
-        simd_store_vector(array, b, 1);
-        simd_store_partial(array, c, 2, last_vec_size);
-        return SIMD_SORT_OK;
-    }
+    for(int i=0; i<full_vec_count; ++i)
+        simd_store_vector(array, data[i], i);
 
-    if (element_count <= SIMD_VECTOR_WIDTH * 4)
-    {
-        simd_vector a = simd_load_vector(array, 0);
-        simd_vector b = simd_load_vector(array, 1);
-        simd_vector c = simd_load_vector(array, 2);
-        simd_vector d = simd_load_partial(array, 3, last_vec_size);
-        simd_sort_4V(&a, &b, &c, &d);
-        simd_store_vector(array, a, 0);
-        simd_store_vector(array, b, 1);
-        simd_store_vector(array, c, 2);
-        simd_store_partial(array, d, 3, last_vec_size);
-        return SIMD_SORT_OK;
-    }
-
-    if (element_count <= SIMD_VECTOR_WIDTH * 5)
-    {
-        simd_vector a = simd_load_vector(array, 0);
-        simd_vector b = simd_load_vector(array, 1);
-        simd_vector c = simd_load_vector(array, 2);
-        simd_vector d = simd_load_vector(array, 3);
-        simd_vector e = simd_load_partial(array, 4, last_vec_size);
-        simd_sort_5V(&a, &b, &c, &d, &e);
-        simd_store_vector(array, a, 0);
-        simd_store_vector(array, b, 1);
-        simd_store_vector(array, c, 2);
-        simd_store_vector(array, d, 3);
-        simd_store_partial(array, e, 4, last_vec_size);
-        return SIMD_SORT_OK;
-    }
-
-    if (element_count <= SIMD_VECTOR_WIDTH * 6)
-    {
-        simd_vector a = simd_load_vector(array, 0);
-        simd_vector b = simd_load_vector(array, 1);
-        simd_vector c = simd_load_vector(array, 2);
-        simd_vector d = simd_load_vector(array, 3);
-        simd_vector e = simd_load_vector(array, 4);
-        simd_vector f = simd_load_partial(array, 5, last_vec_size);
-        simd_sort_6V(&a, &b, &c, &d, &e, &f);
-        simd_store_vector(array, a, 0);
-        simd_store_vector(array, b, 1);
-        simd_store_vector(array, c, 2);
-        simd_store_vector(array, d, 3);
-        simd_store_vector(array, e, 4);
-        simd_store_partial(array, f, 5, last_vec_size);
-        return SIMD_SORT_OK;
-    }
-
-    if (element_count <= SIMD_VECTOR_WIDTH * 7)
-    {
-        simd_vector a = simd_load_vector(array, 0);
-        simd_vector b = simd_load_vector(array, 1);
-        simd_vector c = simd_load_vector(array, 2);
-        simd_vector d = simd_load_vector(array, 3);
-        simd_vector e = simd_load_vector(array, 4);
-        simd_vector f = simd_load_vector(array, 5);
-        simd_vector g = simd_load_partial(array, 6, last_vec_size);
-        simd_sort_7V(&a, &b, &c, &d, &e, &f, &g);
-        simd_store_vector(array, a, 0);
-        simd_store_vector(array, b, 1);
-        simd_store_vector(array, c, 2);
-        simd_store_vector(array, d, 3);
-        simd_store_vector(array, e, 4);
-        simd_store_vector(array, f, 5);
-        simd_store_partial(array, g, 6, last_vec_size);
-        return SIMD_SORT_OK;
-    }
-
-    if (element_count <= SIMD_VECTOR_WIDTH * 8)
-    {
-        simd_vector a = simd_load_vector(array, 0);
-        simd_vector b = simd_load_vector(array, 1);
-        simd_vector c = simd_load_vector(array, 2);
-        simd_vector d = simd_load_vector(array, 3);
-        simd_vector e = simd_load_vector(array, 4);
-        simd_vector f = simd_load_vector(array, 5);
-        simd_vector g = simd_load_vector(array, 6);
-        simd_vector h = simd_load_partial(array, 7, last_vec_size);
-        simd_sort_8V(&a, &b, &c, &d, &e, &f, &g, &h);
-        simd_store_vector(array, a, 0);
-        simd_store_vector(array, b, 1);
-        simd_store_vector(array, c, 2);
-        simd_store_vector(array, d, 3);
-        simd_store_vector(array, e, 4);
-        simd_store_vector(array, f, 5);
-        simd_store_vector(array, g, 6);
-        simd_store_partial(array, h, 7, last_vec_size);
-        return SIMD_SORT_OK;
-    }
-
-    if (element_count <= SIMD_VECTOR_WIDTH * 9)
-    {
-        simd_vector a = simd_load_vector(array, 0);
-        simd_vector b = simd_load_vector(array, 1);
-        simd_vector c = simd_load_vector(array, 2);
-        simd_vector d = simd_load_vector(array, 3);
-        simd_vector e = simd_load_vector(array, 4);
-        simd_vector f = simd_load_vector(array, 5);
-        simd_vector g = simd_load_vector(array, 6);
-        simd_vector h = simd_load_vector(array, 7);
-        simd_vector i = simd_load_partial(array, 8, last_vec_size);
-        simd_sort_9V(&a, &b, &c, &d, &e, &f, &g, &h, &i);
-        simd_store_vector(array, a, 0);
-        simd_store_vector(array, b, 1);
-        simd_store_vector(array, c, 2);
-        simd_store_vector(array, d, 3);
-        simd_store_vector(array, e, 4);
-        simd_store_vector(array, f, 5);
-        simd_store_vector(array, g, 6);
-        simd_store_vector(array, h, 7);
-        simd_store_partial(array, i, 8, last_vec_size);
-        return SIMD_SORT_OK;
-    }
-
-    if (element_count <= SIMD_VECTOR_WIDTH * 10)
-    {
-        simd_vector a = simd_load_vector(array, 0);
-        simd_vector b = simd_load_vector(array, 1);
-        simd_vector c = simd_load_vector(array, 2);
-        simd_vector d = simd_load_vector(array, 3);
-        simd_vector e = simd_load_vector(array, 4);
-        simd_vector f = simd_load_vector(array, 5);
-        simd_vector g = simd_load_vector(array, 6);
-        simd_vector h = simd_load_vector(array, 7);
-        simd_vector i = simd_load_vector(array, 8);
-        simd_vector j = simd_load_partial(array, 9, last_vec_size);
-        simd_sort_10V(&a, &b, &c, &d, &e, &f, &g, &h, &i, &j);
-        simd_store_vector(array, a, 0);
-        simd_store_vector(array, b, 1);
-        simd_store_vector(array, c, 2);
-        simd_store_vector(array, d, 3);
-        simd_store_vector(array, e, 4);
-        simd_store_vector(array, f, 5);
-        simd_store_vector(array, g, 6);
-        simd_store_vector(array, h, 7);
-        simd_store_vector(array, i, 8);
-        simd_store_partial(array, j, 9, last_vec_size);
-        return SIMD_SORT_OK;
-    }
-
-    if (element_count <= SIMD_VECTOR_WIDTH * 11)
-    {
-        simd_vector a = simd_load_vector(array, 0);
-        simd_vector b = simd_load_vector(array, 1);
-        simd_vector c = simd_load_vector(array, 2);
-        simd_vector d = simd_load_vector(array, 3);
-        simd_vector e = simd_load_vector(array, 4);
-        simd_vector f = simd_load_vector(array, 5);
-        simd_vector g = simd_load_vector(array, 6);
-        simd_vector h = simd_load_vector(array, 7);
-        simd_vector i = simd_load_vector(array, 8);
-        simd_vector j = simd_load_vector(array, 9);
-        simd_vector k = simd_load_partial(array, 10, last_vec_size);
-        simd_sort_11V(&a, &b, &c, &d, &e, &f, &g, &h, &i, &j, &k);
-        simd_store_vector(array, a, 0);
-        simd_store_vector(array, b, 1);
-        simd_store_vector(array, c, 2);
-        simd_store_vector(array, d, 3);
-        simd_store_vector(array, e, 4);
-        simd_store_vector(array, f, 5);
-        simd_store_vector(array, g, 6);
-        simd_store_vector(array, h, 7);
-        simd_store_vector(array, i, 8);
-        simd_store_vector(array, j, 9);
-        simd_store_partial(array, k, 10, last_vec_size);
-        return SIMD_SORT_OK;
-    }
-
-    if (element_count <= SIMD_VECTOR_WIDTH * 12)
-    {
-        simd_vector a = simd_load_vector(array, 0);
-        simd_vector b = simd_load_vector(array, 1);
-        simd_vector c = simd_load_vector(array, 2);
-        simd_vector d = simd_load_vector(array, 3);
-        simd_vector e = simd_load_vector(array, 4);
-        simd_vector f = simd_load_vector(array, 5);
-        simd_vector g = simd_load_vector(array, 6);
-        simd_vector h = simd_load_vector(array, 7);
-        simd_vector i = simd_load_vector(array, 8);
-        simd_vector j = simd_load_vector(array, 9);
-        simd_vector k = simd_load_vector(array, 10);
-        simd_vector l = simd_load_partial(array, 11, last_vec_size);
-        simd_sort_12V(&a, &b, &c, &d, &e, &f, &g, &h, &i, &j, &k, &l);
-        simd_store_vector(array, a, 0);
-        simd_store_vector(array, b, 1);
-        simd_store_vector(array, c, 2);
-        simd_store_vector(array, d, 3);
-        simd_store_vector(array, e, 4);
-        simd_store_vector(array, f, 5);
-        simd_store_vector(array, g, 6);
-        simd_store_vector(array, h, 7);
-        simd_store_vector(array, i, 8);
-        simd_store_vector(array, j, 9);
-        simd_store_vector(array, k, 10);
-        simd_store_partial(array, l, 11, last_vec_size);
-        return SIMD_SORT_OK;
-    }
-
-    if (element_count <= SIMD_VECTOR_WIDTH * 13)
-    {
-        simd_vector a = simd_load_vector(array, 0);
-        simd_vector b = simd_load_vector(array, 1);
-        simd_vector c = simd_load_vector(array, 2);
-        simd_vector d = simd_load_vector(array, 3);
-        simd_vector e = simd_load_vector(array, 4);
-        simd_vector f = simd_load_vector(array, 5);
-        simd_vector g = simd_load_vector(array, 6);
-        simd_vector h = simd_load_vector(array, 7);
-        simd_vector i = simd_load_vector(array, 8);
-        simd_vector j = simd_load_vector(array, 9);
-        simd_vector k = simd_load_vector(array, 10);
-        simd_vector l = simd_load_vector(array, 11);
-        simd_vector m = simd_load_partial(array, 12, last_vec_size);
-        simd_sort_13V(&a, &b, &c, &d, &e, &f, &g, &h, &i, &j, &k, &l, &m);
-        simd_store_vector(array, a, 0);
-        simd_store_vector(array, b, 1);
-        simd_store_vector(array, c, 2);
-        simd_store_vector(array, d, 3);
-        simd_store_vector(array, e, 4);
-        simd_store_vector(array, f, 5);
-        simd_store_vector(array, g, 6);
-        simd_store_vector(array, h, 7);
-        simd_store_vector(array, i, 8);
-        simd_store_vector(array, j, 9);
-        simd_store_vector(array, k, 10);
-        simd_store_vector(array, l, 11);
-        simd_store_partial(array, m, 12, last_vec_size);
-        return SIMD_SORT_OK;
-    }
-
-    if (element_count <= SIMD_VECTOR_WIDTH * 14)
-    {
-        simd_vector a = simd_load_vector(array, 0);
-        simd_vector b = simd_load_vector(array, 1);
-        simd_vector c = simd_load_vector(array, 2);
-        simd_vector d = simd_load_vector(array, 3);
-        simd_vector e = simd_load_vector(array, 4);
-        simd_vector f = simd_load_vector(array, 5);
-        simd_vector g = simd_load_vector(array, 6);
-        simd_vector h = simd_load_vector(array, 7);
-        simd_vector i = simd_load_vector(array, 8);
-        simd_vector j = simd_load_vector(array, 9);
-        simd_vector k = simd_load_vector(array, 10);
-        simd_vector l = simd_load_vector(array, 11);
-        simd_vector m = simd_load_vector(array, 12);
-        simd_vector n = simd_load_partial(array, 13, last_vec_size);
-        simd_sort_14V(&a, &b, &c, &d, &e, &f, &g, &h, &i, &j, &k, &l, &m, &n);
-        simd_store_vector(array, a, 0);
-        simd_store_vector(array, b, 1);
-        simd_store_vector(array, c, 2);
-        simd_store_vector(array, d, 3);
-        simd_store_vector(array, e, 4);
-        simd_store_vector(array, f, 5);
-        simd_store_vector(array, g, 6);
-        simd_store_vector(array, h, 7);
-        simd_store_vector(array, i, 8);
-        simd_store_vector(array, j, 9);
-        simd_store_vector(array, k, 10);
-        simd_store_vector(array, l, 11);
-        simd_store_vector(array, m, 12);
-        simd_store_partial(array, n, 13, last_vec_size);
-        return SIMD_SORT_OK;
-    }
-
-    if (element_count <= SIMD_VECTOR_WIDTH * 15)
-    {
-        simd_vector a = simd_load_vector(array, 0);
-        simd_vector b = simd_load_vector(array, 1);
-        simd_vector c = simd_load_vector(array, 2);
-        simd_vector d = simd_load_vector(array, 3);
-        simd_vector e = simd_load_vector(array, 4);
-        simd_vector f = simd_load_vector(array, 5);
-        simd_vector g = simd_load_vector(array, 6);
-        simd_vector h = simd_load_vector(array, 7);
-        simd_vector i = simd_load_vector(array, 8);
-        simd_vector j = simd_load_vector(array, 9);
-        simd_vector k = simd_load_vector(array, 10);
-        simd_vector l = simd_load_vector(array, 11);
-        simd_vector m = simd_load_vector(array, 12);
-        simd_vector n = simd_load_vector(array, 13);
-        simd_vector o = simd_load_partial(array, 14, last_vec_size);
-        simd_sort_15V(&a, &b, &c, &d, &e, &f, &g, &h, &i, &j, &k, &l, &m, &n, &o);
-        simd_store_vector(array, a, 0);
-        simd_store_vector(array, b, 1);
-        simd_store_vector(array, c, 2);
-        simd_store_vector(array, d, 3);
-        simd_store_vector(array, e, 4);
-        simd_store_vector(array, f, 5);
-        simd_store_vector(array, g, 6);
-        simd_store_vector(array, h, 7);
-        simd_store_vector(array, i, 8);
-        simd_store_vector(array, j, 9);
-        simd_store_vector(array, k, 10);
-        simd_store_vector(array, l, 11);
-        simd_store_vector(array, m, 12);
-        simd_store_vector(array, n, 13);
-        simd_store_partial(array, o, 14, last_vec_size);
-        return SIMD_SORT_OK;
-    }
-
-    if (element_count <= SIMD_VECTOR_WIDTH * 16)
-    {
-        simd_vector a = simd_load_vector(array, 0);
-        simd_vector b = simd_load_vector(array, 1);
-        simd_vector c = simd_load_vector(array, 2);
-        simd_vector d = simd_load_vector(array, 3);
-        simd_vector e = simd_load_vector(array, 4);
-        simd_vector f = simd_load_vector(array, 5);
-        simd_vector g = simd_load_vector(array, 6);
-        simd_vector h = simd_load_vector(array, 7);
-        simd_vector i = simd_load_vector(array, 8);
-        simd_vector j = simd_load_vector(array, 9);
-        simd_vector k = simd_load_vector(array, 10);
-        simd_vector l = simd_load_vector(array, 11);
-        simd_vector m = simd_load_vector(array, 12);
-        simd_vector n = simd_load_vector(array, 13);
-        simd_vector o = simd_load_vector(array, 14);
-        simd_vector p = simd_load_partial(array, 15, last_vec_size);
-        simd_sort_16V(&a, &b, &c, &d, &e, &f, &g, &h, &i, &j, &k, &l, &m, &n, &o, &p);
-        simd_store_vector(array, a, 0);
-        simd_store_vector(array, b, 1);
-        simd_store_vector(array, c, 2);
-        simd_store_vector(array, d, 3);
-        simd_store_vector(array, e, 4);
-        simd_store_vector(array, f, 5);
-        simd_store_vector(array, g, 6);
-        simd_store_vector(array, h, 7);
-        simd_store_vector(array, i, 8);
-        simd_store_vector(array, j, 9);
-        simd_store_vector(array, k, 10);
-        simd_store_vector(array, l, 11);
-        simd_store_vector(array, m, 12);
-        simd_store_vector(array, n, 13);
-        simd_store_vector(array, o, 14);
-        simd_store_partial(array, p, 15, last_vec_size);
-        return SIMD_SORT_OK;
-    }
-    return SIMD_SORT_TOOMANYELEMENTS;
+    if (last_vec_size)
+        simd_store_partial(array, data[full_vec_count], full_vec_count, last_vec_size);
 }
 
 //----------------------------------------------------------------------------------------------------------------------
