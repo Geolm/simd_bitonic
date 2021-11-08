@@ -13,13 +13,9 @@ DOCUMENTATION
 
         Returns the number of float at max that the library can sort
 
-    int simd_small_sort(float* array, int element_count);
+    void simd_small_sort(float* array, int element_count);
 
-        Sort a small array of float
-        Returns an error code
-            SIMD_SORT_OK                Everything ok
-            SIMD_SORT_TOOMANYELEMENTS   There are too many float to sort in the array, use simd_sort_max() to get the max
-
+        Sort a small array of float. Do nothing if there is too many elements in the array (more than simd_small_sort_max())
 
     void simd_merge_sort(float* array, int element_count);
 
