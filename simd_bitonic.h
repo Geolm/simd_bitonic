@@ -1068,7 +1068,7 @@ void merge_sort(float* array, int left, int right)
 
         if (element_count <= (2 * MERGE_SORT_TILE) && element_count > MERGE_SORT_TILE)
         {
-            middle = left + simd_small_sort_max() - 1;
+            middle = left + MERGE_SORT_TILE - 1;
         }
         else
         {
