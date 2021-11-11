@@ -35,10 +35,6 @@ DOCUMENTATION
 extern "C" {
 #endif
 
-#define SIMD_SORT_OK                (1)
-#define SIMD_SORT_TOOMANYELEMENTS   (2)
-
-
 int simd_small_sort_max();
 void simd_small_sort(float* array, int element_count);
 void simd_merge_sort(float* array, int element_count);
