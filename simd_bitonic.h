@@ -1055,8 +1055,7 @@ void merge_arrays(float* array, int left, int middle, int right)
     free(right_array);
 }
 
-// 8 vectors should fit in registers on most platform
-#define MERGE_SORT_TILE (8 * SIMD_VECTOR_WIDTH)
+#define MERGE_SORT_TILE (simd_small_sort_max())
 
 //----------------------------------------------------------------------------------------------------------------------
 void merge_sort(float* array, int left, int right) 
@@ -1078,12 +1077,12 @@ void merge_sort(float* array, int left, int right)
         left_element_count = middle - left + 1;
         right_element_count = right - middle;
         
-        if (left_element_count <= simd_small_sort_max())
+        if (left_element_count <= MERGE_SORT_TILE)
             simd_small_sort(array + left, left_element_count);
         else
             merge_sort(array, left, middle);
 
-        if (right_element_count <= simd_small_sort_max())
+        if (right_element_count <= MERGE_SORT_TILE)
             simd_small_sort(array + middle + 1, right_element_count);
         else
             merge_sort(array, middle + 1, right);
