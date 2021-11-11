@@ -351,15 +351,15 @@ static inline void simd_store_partial(float* array, __m256 a, int index, int ele
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-static inline __m256 simd_load_vector(const float* array, int index)
+static inline __m256 simd_load_vector(const float* array, int vector_index)
 {
-    return _mm256_loadu_ps(array + SIMD_VECTOR_WIDTH * index);
+    return _mm256_loadu_ps(array + SIMD_VECTOR_WIDTH * vector_index);
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-static inline void simd_store_vector(float* array, __m256 a, int index)
+static inline void simd_store_vector(float* array, __m256 a, int vector_index)
 {
-    _mm256_storeu_ps(array + SIMD_VECTOR_WIDTH * index, a);
+    _mm256_storeu_ps(array + SIMD_VECTOR_WIDTH * vector_index, a);
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -979,6 +979,29 @@ void simd_small_sort(float* array, int element_count)
 }
 
 //----------------------------------------------------------------------------------------------------------------------
+static inline simd_vector simd_load_vector_overflow(const float* array, int size, int* index)
+{
+    simd_vector result = (*index + SIMD_VECTOR_WIDTH >= size) ? simd_load_partial(array + *index, 0, size - *index) : simd_load_vector(array + *index, 0);
+    *index += SIMD_VECTOR_WIDTH;
+    return result;
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+static inline void simd_store_vector_overflow(float* array, int size, int *index, simd_vector a)
+{
+    if (*index + SIMD_VECTOR_WIDTH >= size)
+    {
+        simd_store_partial(array + *index, a, 0, size - *index);
+    }
+    else
+    {
+        simd_store_vector(array + *index, a, 0);
+    }
+    *index += SIMD_VECTOR_WIDTH;
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+// based on Efficient Implementation of Sorting on MultiCore SIMD CPU Architecture paper
 void merge_arrays(float* array, int left, int middle, int right)
 {
     int left_element_count = middle - left + 1;
@@ -995,38 +1018,45 @@ void merge_arrays(float* array, int left, int middle, int right)
     right_index = 0;
     output_index = left;
 
-    while (left_index < left_element_count && right_index < right_element_count) 
+    simd_vector a = simd_load_vector_overflow(left_array, left_element_count, &left_index);
+    simd_vector b = simd_load_vector_overflow(right_array, right_element_count, &right_index);
+
+    simd_sort_2V(&a, &b);
+    simd_store_vector_overflow(array, right+1, &output_index, a);
+
+    while (left_index < left_element_count && right_index < right_element_count)
     {
-        if (left_array[left_index] < right_array[right_index]) 
-        {
-            array[output_index] = left_array[left_index];
-            left_index++;
-        } 
-        else 
-        {
-            array[output_index] = right_array[right_index];
-            right_index++;
-        }
-        output_index++;
+        if (left_array[left_index]<right_array[right_index])
+            a = simd_load_vector_overflow(left_array, left_element_count, &left_index);
+        else
+            a = simd_load_vector_overflow(right_array, right_element_count, &right_index);
+
+        simd_sort_2V(&a, &b);
+        simd_store_vector_overflow(array, right+1, &output_index, a);
     }
 
     while (left_index < left_element_count) 
     {
-        array[output_index] = left_array[left_index];
-        left_index++;
-        output_index++;
+        a = simd_load_vector_overflow(left_array, left_element_count, &left_index);
+        simd_sort_2V(&a, &b);
+        simd_store_vector_overflow(array, right+1, &output_index, a);
     }
 
     while (right_index < right_element_count) 
     {
-        array[output_index] = right_array[right_index];
-        right_index++;
-        output_index++;
+        a = simd_load_vector_overflow(right_array, right_element_count, &right_index);
+        simd_sort_2V(&a, &b);
+        simd_store_vector_overflow(array, right+1, &output_index, a);
     }
+
+    simd_store_vector_overflow(array, right+1, &output_index, b);
 
     free(left_array);
     free(right_array);
 }
+
+// 8 vectors should fit in registers on most platform
+#define MERGE_SORT_TILE (8 * SIMD_VECTOR_WIDTH)
 
 //----------------------------------------------------------------------------------------------------------------------
 void merge_sort(float* array, int left, int right) 
@@ -1036,7 +1066,7 @@ void merge_sort(float* array, int left, int right)
         int middle, left_element_count, right_element_count;
         int element_count = (right - left + 1);
 
-        if (element_count <= (2 * simd_small_sort_max()) && element_count > simd_small_sort_max())
+        if (element_count <= (2 * MERGE_SORT_TILE) && element_count > MERGE_SORT_TILE)
         {
             middle = left + simd_small_sort_max() - 1;
         }

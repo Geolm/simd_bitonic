@@ -26,6 +26,7 @@
 		FB09FFC4273324D0004D1B2A /* sokol_time.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = sokol_time.h; sourceTree = "<group>"; };
 		FB09FFC5273324D0004D1B2A /* main.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 		FB09FFC827332577004D1B2A /* random.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = random.h; sourceTree = "<group>"; };
+		FB828FE3273DB34E00B6335C /* simd_bitonic.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = simd_bitonic.h; path = ../../simd_bitonic.h; sourceTree = "<group>"; };
 		FBC97B1426EFF1C600D31F19 /* simd_bitonic */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = simd_bitonic; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -59,6 +60,7 @@
 		FBC97B1626EFF1C600D31F19 /* simd_bitonic */ = {
 			isa = PBXGroup;
 			children = (
+				FB828FE3273DB34E00B6335C /* simd_bitonic.h */,
 				FB09FFC827332577004D1B2A /* random.h */,
 				FB09FFC5273324D0004D1B2A /* main.cpp */,
 				FB09FFC4273324D0004D1B2A /* sokol_time.h */,
