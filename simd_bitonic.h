@@ -20,7 +20,6 @@ DOCUMENTATION
     void simd_merge_sort(float* array, int element_count);
 
         Sort an array of float using a mix merge sort and bitonic sort
-
 */
 
 
@@ -871,7 +870,7 @@ void simd_small_sort(float* array, int element_count)
     const int full_vec_count = element_count / SIMD_VECTOR_WIDTH;
     const int last_vec_size = element_count - (full_vec_count * SIMD_VECTOR_WIDTH);
     
-    simd_vector data[32];
+    simd_vector data[24];
     
     for(int i=0; i<full_vec_count; ++i)
         data[i] = simd_load_vector(array, i);
