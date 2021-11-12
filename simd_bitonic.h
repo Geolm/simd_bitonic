@@ -1001,6 +1001,14 @@ static inline void simd_store_vector_overflow(float* array, int size, int *index
 }
 
 //----------------------------------------------------------------------------------------------------------------------
+static inline void simd_merge_2V_sorted(simd_vector* a, simd_vector* b)
+{
+    simd_permute_minmax_2V(a, b);
+    *a = simd_aftermerge_1V(*a);
+    *b = simd_aftermerge_1V(*b);
+}
+
+//----------------------------------------------------------------------------------------------------------------------
 // based on Efficient Implementation of Sorting on MultiCore SIMD CPU Architecture paper
 void merge_arrays(float* array, int left, int middle, int right)
 {
@@ -1021,7 +1029,7 @@ void merge_arrays(float* array, int left, int middle, int right)
     simd_vector a = simd_load_vector_overflow(left_array, left_element_count, &left_index);
     simd_vector b = simd_load_vector_overflow(right_array, right_element_count, &right_index);
 
-    simd_sort_2V(&a, &b);
+    simd_merge_2V_sorted(&a, &b);
     simd_store_vector_overflow(array, right+1, &output_index, a);
 
     while (left_index < left_element_count && right_index < right_element_count)
@@ -1031,21 +1039,21 @@ void merge_arrays(float* array, int left, int middle, int right)
         else
             a = simd_load_vector_overflow(right_array, right_element_count, &right_index);
 
-        simd_sort_2V(&a, &b);
+        simd_merge_2V_sorted(&a, &b);
         simd_store_vector_overflow(array, right+1, &output_index, a);
     }
 
     while (left_index < left_element_count) 
     {
         a = simd_load_vector_overflow(left_array, left_element_count, &left_index);
-        simd_sort_2V(&a, &b);
+        simd_merge_2V_sorted(&a, &b);
         simd_store_vector_overflow(array, right+1, &output_index, a);
     }
 
     while (right_index < right_element_count) 
     {
         a = simd_load_vector_overflow(right_array, right_element_count, &right_index);
-        simd_sort_2V(&a, &b);
+        simd_merge_2V_sorted(&a, &b);
         simd_store_vector_overflow(array, right+1, &output_index, a);
     }
 
