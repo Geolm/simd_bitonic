@@ -1,17 +1,24 @@
 # SIMD bitonic sort
 
-Sort small arrays of float using simd instructions (AVX and NEON) to parallelize work.
+This library works with AVX or NEON instructions.
 
-Loosely based on "Fast Sorting Algorithms using AVX-512 on Intel Knights Landing" https://hal.inria.fr/hal-01512970v1/document
+## Bitonic sort
 
-Contrary to the algorithms showed in the paper, this library works with AVX 1.0 that can be found in most AMD/Intel CPU nowadays and also NEON instructions that are found in most ARM compatible CPU (cellphone, switch, apple silicon).
+Sort small arrays of float using SIMD instructions to parallelize work.
+
+Based on "Fast Sorting Algorithms using AVX-512 on Intel Knights Landing" https://hal.inria.fr/hal-01512970v1/document
+
+## Merge sort
+
+Tiled merge sort using SIMD merge sort based on "Efficient Implementation of Sorting on Multi-Core SIMD CPU Architecture" http://www.vldb.org/pvldb/vol1/1454171.pdf
+
 
 # Library
 One C99 header file, simd_bitonic.h. C99 probably needed. Tested with clang -mavx -o3.
 
 * simd_small_sort_max(), returns the maximum number of float at max that be can sorted with the small sort function
 * simd_small_sort(), bitonic sort small arrays
-* simd_merge_sort(), tiled merge sort : merge sort until the number of element can be sorted using the simd_small_sort
+* simd_merge_sort(), tiled merge sort
 
 # Results
 
