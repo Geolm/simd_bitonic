@@ -496,20 +496,24 @@ static inline void simd_aftermerge_16V(simd_vector *a, simd_vector *b, simd_vect
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-static inline void simd_sort_2V(simd_vector* a, simd_vector* b)
+static inline void simd_merge_2V_sorted(simd_vector* a, simd_vector* b)
 {
-    *a = simd_sort_1V(*a);
-    *b = simd_sort_1V(*b);
     simd_permute_minmax_2V(a, b);
     *a = simd_aftermerge_1V(*a);
     *b = simd_aftermerge_1V(*b);
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-static inline void simd_sort_3V(simd_vector* a, simd_vector* b, simd_vector* c)
+static inline void simd_sort_2V(simd_vector* a, simd_vector* b)
 {
-    simd_sort_2V(a, b);
-    *c = simd_sort_1V(*c);
+    *a = simd_sort_1V(*a);
+    *b = simd_sort_1V(*b);
+    simd_merge_2V_sorted(a, b);
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+static inline void simd_merge_3V_sorted(simd_vector* a, simd_vector* b, simd_vector* c)
+{
     simd_permute_minmax_2V(b, c);
     simd_minmax_2V(a, b);
     *a = simd_aftermerge_1V(*a);
@@ -518,10 +522,16 @@ static inline void simd_sort_3V(simd_vector* a, simd_vector* b, simd_vector* c)
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-static inline void simd_sort_4V(simd_vector* a, simd_vector* b, simd_vector* c, simd_vector* d)
+static inline void simd_sort_3V(simd_vector* a, simd_vector* b, simd_vector* c)
 {
     simd_sort_2V(a, b);
-    simd_sort_2V(c, d);
+    *c = simd_sort_1V(*c);
+    simd_merge_3V_sorted(a, b, c);
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+static inline void simd_merge_4V_sorted(simd_vector* a, simd_vector* b, simd_vector* c, simd_vector* d)
+{
     simd_permute_minmax_2V(a, d);
     simd_permute_minmax_2V(b, c);
     simd_minmax_2V(a, b);
@@ -530,6 +540,14 @@ static inline void simd_sort_4V(simd_vector* a, simd_vector* b, simd_vector* c, 
     *b = simd_aftermerge_1V(*b);
     *c = simd_aftermerge_1V(*c);
     *d = simd_aftermerge_1V(*d);
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+static inline void simd_sort_4V(simd_vector* a, simd_vector* b, simd_vector* c, simd_vector* d)
+{
+    simd_sort_2V(a, b);
+    simd_sort_2V(c, d);
+    simd_merge_4V_sorted(a, b, c, d);
 }
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -998,14 +1016,6 @@ static inline void simd_store_vector_overflow(float* array, int size, int *index
         simd_store_vector(array + *index, a, 0);
     }
     *index += SIMD_VECTOR_WIDTH;
-}
-
-//----------------------------------------------------------------------------------------------------------------------
-static inline void simd_merge_2V_sorted(simd_vector* a, simd_vector* b)
-{
-    simd_permute_minmax_2V(a, b);
-    *a = simd_aftermerge_1V(*a);
-    *b = simd_aftermerge_1V(*b);
 }
 
 //----------------------------------------------------------------------------------------------------------------------
