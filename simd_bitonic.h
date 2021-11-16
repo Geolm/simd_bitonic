@@ -999,7 +999,7 @@ void simd_small_sort(float* array, int element_count)
 //----------------------------------------------------------------------------------------------------------------------
 static inline simd_vector simd_load_vector_overflow(const float* array, int size, int* index)
 {
-    simd_vector result = (*index + SIMD_VECTOR_WIDTH >= size) ? simd_load_partial(array + *index, 0, size - *index) : simd_load_vector(array + *index, 0);
+    simd_vector result = (*index + SIMD_VECTOR_WIDTH > size) ? simd_load_partial(array + *index, 0, size - *index) : simd_load_vector(array + *index, 0);
     *index += SIMD_VECTOR_WIDTH;
     return result;
 }
@@ -1007,7 +1007,7 @@ static inline simd_vector simd_load_vector_overflow(const float* array, int size
 //----------------------------------------------------------------------------------------------------------------------
 static inline void simd_store_vector_overflow(float* array, int size, int *index, simd_vector a)
 {
-    if (*index + SIMD_VECTOR_WIDTH >= size)
+    if (*index + SIMD_VECTOR_WIDTH > size)
     {
         simd_store_partial(array + *index, a, 0, size - *index);
     }
