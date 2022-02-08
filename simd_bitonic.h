@@ -69,20 +69,10 @@ void simd_merge_sort(float* array, int element_count);
 
 typedef float32x4_t simd_vector;
 
-//----------------------------------------------------------------------------------------------------------------------
-static inline float32x4_t vblendq_f32(float32x4_t _a, float32x4_t _b, const char imm8)
-{
-    const uint32_t ALIGN_STRUCT(16) data[4] = 
-    {
-        ((imm8) & (1 << 0)) ? UINT32_MAX : 0,
-        ((imm8) & (1 << 1)) ? UINT32_MAX : 0,
-        ((imm8) & (1 << 2)) ? UINT32_MAX : 0,
-        ((imm8) & (1 << 3)) ? UINT32_MAX : 0
-    };
+#define vblendq_f32(a, b, mask) vbslq_f32(vld1q_u32(mask), b, a)
 
-    uint32x4_t mask = vld1q_u32(data);
-    return vbslq_f32(mask, _b, _a);
-}
+static const uint32_t ALIGN_STRUCT(16) mask_0xA[4] = {0, UINT32_MAX, 0, UINT32_MAX};
+static const uint32_t ALIGN_STRUCT(16) mask_0xC[4] = {0, 0, UINT32_MAX, UINT32_MAX};
 
 //----------------------------------------------------------------------------------------------------------------------
 static inline float32x4_t simd_sort_1V(float32x4_t input)
@@ -91,19 +81,19 @@ static inline float32x4_t simd_sort_1V(float32x4_t input)
         float32x4_t perm_neigh = vrev64q_f32(input);
         float32x4_t perm_neigh_min = vminq_f32(input, perm_neigh);
         float32x4_t perm_neigh_max = vmaxq_f32(input, perm_neigh);
-        input = vblendq_f32(perm_neigh_min, perm_neigh_max, 0xA);
+        input = vblendq_f32(perm_neigh_min, perm_neigh_max, mask_0xA);
     }
     {
         float32x4_t perm_neigh = __builtin_shufflevector(input, input, 3, 2, 1, 0);
         float32x4_t perm_neigh_min = vminq_f32(input, perm_neigh);
         float32x4_t perm_neigh_max = vmaxq_f32(input, perm_neigh);
-        input = vblendq_f32(perm_neigh_min, perm_neigh_max, 0xC);
+        input = vblendq_f32(perm_neigh_min, perm_neigh_max, mask_0xC);
     }
     {
         float32x4_t perm_neigh = vrev64q_f32(input);
         float32x4_t perm_neigh_min = vminq_f32(input, perm_neigh);
         float32x4_t perm_neigh_max = vmaxq_f32(input, perm_neigh);
-        input = vblendq_f32(perm_neigh_min, perm_neigh_max, 0xA);
+        input = vblendq_f32(perm_neigh_min, perm_neigh_max, mask_0xA);
     }
     return input;
 }
@@ -115,13 +105,13 @@ static inline float32x4_t simd_aftermerge_1V(float32x4_t input)
         float32x4_t perm_neigh = __builtin_shufflevector(input, input, 2, 3, 0, 1);
         float32x4_t perm_neigh_min = vminq_f32(input, perm_neigh);
         float32x4_t perm_neigh_max = vmaxq_f32(input, perm_neigh);
-        input = vblendq_f32(perm_neigh_min, perm_neigh_max, 0xC);
+        input = vblendq_f32(perm_neigh_min, perm_neigh_max, mask_0xC);
     }
     {
         float32x4_t perm_neigh = vrev64q_f32(input);
         float32x4_t perm_neigh_min = vminq_f32(input, perm_neigh);
         float32x4_t perm_neigh_max = vmaxq_f32(input, perm_neigh);
-        input = vblendq_f32(perm_neigh_min, perm_neigh_max, 0xA);
+        input = vblendq_f32(perm_neigh_min, perm_neigh_max, mask_0xA);
     }
     return input;
 }
